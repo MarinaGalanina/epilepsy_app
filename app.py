@@ -11,10 +11,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed"  # ukryj sidebar do czasu logowania
 )
 
-# ---------------------- 🔒 LOGOWANIE (center + responsywne) ----------------------
+# ---------------------- 🔒 LOGOWANIE (center + bez st.rerun) ----------------------
 def check_access() -> bool:
     """
-    Ekran logowania dokładnie na środku ekranu.
+    Ekran logowania wyświetlany dokładnie na środku ekranu.
     Wymaga ACCESS_CODE w st.secrets lub zmiennej środowiskowej.
     """
     ACCESS_CODE = st.secrets.get("ACCESS_CODE") or os.environ.get("ACCESS_CODE")
@@ -22,71 +22,71 @@ def check_access() -> bool:
         st.error("Brak ustawionego ACCESS_CODE w Secrets/ENV.")
         st.stop()
 
-    if "auth_ok" not in st.session_state:
-        st.session_state.auth_ok = False
-
-    # jeśli już zalogowany — wpuszczamy
-    if st.session_state.auth_ok:
+    # status sesji
+    auth_ok = st.session_state.get("auth_ok", False)
+    if auth_ok:
         return True
 
-    # CSS centrowania: pracujemy na głównym kontenerze widoku
+    # CSS: centrowanie głównego kontenera, bez dziwnych marginesów
     st.markdown(
         """
         <style>
-        /* pełna wysokość widoku + centrowanie głównego kontenera */
+        /* uderzamy w główny kontener widoku */
         div[data-testid="stAppViewContainer"] > .main {
-            display: flex;
-            align-items: center;
-            justify-content: center;
             height: 100vh;
-            padding-top: 0; padding-bottom: 0;
+            min-height: 600px;
+            display: flex;
+            align-items: center;          /* pion */
+            justify-content: center;       /* poziom */
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
         }
         .auth-card {
             width: min(94vw, 420px);
             background: var(--background-color);
-            border-radius: 16px;
+            border-radius: 18px;
             padding: 28px 28px 22px 28px;
-            box-shadow: 0 10px 28px rgba(0,0,0,0.08);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.08);
             text-align: center;
+            animation: fadeIn .25s ease-out;
         }
-        .auth-title{ margin: 6px 0 2px 0; font-weight: 700; }
-        .auth-sub{ opacity: 0.8; margin-bottom: 16px; }
+        .auth-title { margin: 6px 0 2px 0; font-weight: 700; }
+        .auth-sub   { opacity: .8; margin-bottom: 14px; }
         .auth-btn button { width: 100%; height: 42px; font-weight: 600; }
+        @keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
         </style>
         """,
         unsafe_allow_html=True
     )
 
-    # karta logowania pośrodku
-    with st.container():
-        st.markdown('<div class="auth-card">', unsafe_allow_html=True)
-        st.image("https://img.icons8.com/color/96/brain.png", width=76)
-        st.markdown('<div class="auth-title">🧠 Szacowanie ryzyka cech napadów</div>', unsafe_allow_html=True)
-        st.markdown('<div class="auth-sub">Wpisz kod dostępu, aby kontynuować</div>', unsafe_allow_html=True)
+    # środkowa karta logowania (bez callbacków)
+    st.markdown('<div class="auth-card">', unsafe_allow_html=True)
+    st.image("https://img.icons8.com/color/96/brain.png", width=76)
+    st.markdown('<div class="auth-title">🧠 Szacowanie ryzyka cech napadów</div>', unsafe_allow_html=True)
+    st.markdown('<div class="auth-sub">Wpisz kod dostępu, aby kontynuować</div>', unsafe_allow_html=True)
 
-        with st.form("login_form", clear_on_submit=False):
-            code = st.text_input("Kod dostępu", type="password", label_visibility="collapsed")
-            submitted = st.form_submit_button("Zaloguj", use_container_width=True)
+    # używamy formy – submit = naturalny rerender (bez st.rerun)
+    with st.form("login_form", clear_on_submit=False):
+        code = st.text_input("Kod dostępu", type="password", label_visibility="collapsed")
+        submitted = st.form_submit_button("Zaloguj", use_container_width=True)
 
-        st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
     if submitted:
         if code == ACCESS_CODE:
-            st.session_state.auth_ok = True
-            st.rerun()   # <— poprawka: używamy nowego API
+            st.session_state.auth_ok = True   # kolejny rerender pokaże aplikację
         else:
             st.error("Błędny kod ❌")
 
-    # dopóki niezalogowany — zatrzymujemy render
-    st.stop()
+    st.stop()  # dopóki nie zalogowany – nic dalej się nie renderuje
 
 # ---------------------- ⛔️ Strażnik logowania ----------------------
 if not check_access():
     st.stop()
 
-# od tej linii użytkownik jest zalogowany
 st.sidebar.success("Zalogowano ✅")
-st.sidebar.button("Wyloguj", on_click=lambda: (st.session_state.update({"auth_ok": False}), st.rerun()))
+if st.sidebar.button("Wyloguj"):
+    st.session_state.auth_ok = False
 
 # ---------------------- 🧠 GŁÓWNA CZĘŚĆ APLIKACJI ----------------------
 st.title("🧠 Szacowanie ryzyka cech napadów – DEMO")
