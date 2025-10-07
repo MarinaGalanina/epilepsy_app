@@ -4,61 +4,54 @@ import streamlit as st
 import os
 from typing import Dict, Any, List
 
-# ---------------------- ⚙️ USTAWIENIA STRONY ----------------------
+# ---------------------- ⚙️ STRONA ----------------------
 st.set_page_config(
     page_title="Ryzyko cech napadu (DEMO)",
     page_icon="🧠",
     layout="wide",
-    initial_sidebar_state="collapsed"  # możemy zostawić collapsed, ale ukrywamy kontrolkę
+    initial_sidebar_state="collapsed"
 )
 
-# ---------------------- 🧽 KILLBAR: header/toolbar + "białe jajko" (sidebar toggle) ----------------------
+# ---------------------- 🧽 KILLBAR: header/toolbar + "białe jajko" ----------------------
 st.markdown("""
 <style>
-/* 1) Header/toolbar/decoracje/badge/status */
+/* Hide header, toolbar, status, badges */
+header, footer,
+div[data-testid="stHeader"],
+div[data-testid="stToolbar"],
 div[data-testid="stDecoration"],
-header, div[data-testid="stHeader"], div[data-testid="stToolbar"],
-section[data-testid="stDecoration"],
-div[class*="viewerBadge_"], a[data-testid="viewer-badge"],
-div[data-testid="stStatusWidget"], [data-testid="stStatusWidget"],
-[data-testid="stAppStatusWidget"], [data-testid="stAppStatusContainer"],
-header[role="banner"], div[role="banner"] {
-  display: none !important; visibility: hidden !important; opacity: 0 !important;
-  height: 0 !important; width: 0 !important; position: fixed !important; z-index: -9999 !important;
+div[data-testid="stStatusWidget"],
+[data-testid="stAppStatusWidget"],
+[data-testid="stAppStatusContainer"],
+div[class*="viewerBadge_"],
+a[data-testid="viewer-badge"] {
+  display:none !important;
 }
 
-/* 2) *** Kontrolka zwijania sidebaru — "białe jajko" *** */
-div[data-testid="collapsedControl"],
+/* Hide ALL variants of the sidebar toggle ("white pill") */
 div[data-testid="stSidebarCollapseButton"],
 button[data-testid="stSidebarCollapseButton"],
+div[data-testid="collapsedControl"],
 div[aria-label="Show sidebar"],
 div[aria-label="Hide sidebar"] {
-  display: none !important; visibility: hidden !important; opacity: 0 !important;
-  height: 0 !important; width: 0 !important; position: fixed !important; z-index: -9999 !important;
+  display:none !important;
+  width:0 !important; height:0 !important; opacity:0 !important;
+  position:fixed !important; z-index:-9999 !important;
 }
 
-/* 3) Zerowanie górnych paddingów kontenera widoku */
-div[data-testid="stAppViewContainer"] { padding-top:0 !important; margin-top:0 !important; }
-div[data-testid="stAppViewContainer"] > .main { padding-top:0 !important; padding-bottom:0 !important; }
+/* Remove residual top spacing */
 html, body, [data-testid="stApp"] { margin:0 !important; padding:0 !important; }
-
-/* (opcjonalnie) reset globalnych cieni, by nic nie "przebijało" */
-header:before, header:after,
-div[data-testid="stHeader"]:before, div[data-testid="stHeader"]:after { display:none !important; content:none !important; }
-</style>
-""", unsafe_allow_html=True)
-
-# ---------------------- ✨ GLOBALNY STYL — neutralny UI ----------------------
-st.markdown("""
-<style>
-:root { --radius: 14px; }
+div[data-testid="stAppViewContainer"]            { padding-top:0 !important; margin-top:0 !important; }
+div[data-testid="stAppViewContainer"] .main      { padding-top:0 !important; padding-bottom:0 !important; }
 div[data-testid="stAppViewContainer"] .block-container {
-  padding-top: 12px; padding-bottom: 28px; max-width: 980px;
+  padding-top:8px !important; padding-bottom:24px !important; max-width: 980px;
 }
+
+/* Neutral, responsive UI */
+:root { --radius: 14px; }
 .stAlert { border-radius: var(--radius); }
 .stProgress > div > div > div { border-radius: 999px; }
 
-/* Karta pytania: neutralnie, bez białego tła i bez cienia */
 .q-card {
   border:1px solid rgba(0,0,0,.10);
   border-radius: var(--radius);
@@ -68,28 +61,22 @@ div[data-testid="stAppViewContainer"] .block-container {
 }
 .q-title { font-size:1.05rem; font-weight:700; margin:0 0 .25rem 0; }
 
-/* Dots i badge */
 .progress-dots { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 6px 0; }
 .dot { width:10px; height:10px; border-radius:50%; background:rgba(0,0,0,.15); }
 .dot.on { background:rgba(0,0,0,.45); }
 .badge { display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .7rem;
   border-radius:999px; background:rgba(0,0,0,.06); font-size:.85rem; }
 
-/* Przyciski wyboru – neutralne */
 .choice-grid { display:grid; grid-template-columns: 1fr; gap:10px; margin-top:.5rem; }
 @media (min-width:560px){ .choice-grid{ grid-template-columns: repeat(3, 1fr); } }
 .stButton>button {
-  border-radius: var(--radius);
-  font-weight: 700;
-  padding: 0.9rem 1rem;
-  border: 1px solid rgba(0,0,0,.12);
-  background: rgba(0,0,0,.03);
-  color: inherit;
+  border-radius: var(--radius); font-weight:700; padding:0.9rem 1rem;
+  border:1px solid rgba(0,0,0,.12); background:rgba(0,0,0,.03); color:inherit;
 }
-.stButton>button:hover { background: rgba(0,0,0,.06); border-color: rgba(0,0,0,.16); }
-.stButton>button:focus { outline: 2px solid rgba(0,0,0,.18); }
+.stButton>button:hover { background:rgba(0,0,0,.06); border-color:rgba(0,0,0,.16); }
+.stButton>button:focus { outline:2px solid rgba(0,0,0,.18); }
 
-/* Select neutralny (dla pytań typu select) */
+/* Selects (BaseWeb) */
 div[data-baseweb="select"] > div {
   border-radius: var(--radius);
   border-color: rgba(0,0,0,.12);
@@ -111,11 +98,12 @@ def check_access() -> bool:
     st.markdown("""
     <style>
     div[data-testid="stAppViewContainer"] > .main {
-        height: 100vh; display: flex; align-items: center; justify-content: center;
+        min-height: 100vh; display: flex; align-items: center; justify-content: center;
         padding-top: 0 !important; padding-bottom: 0 !important;
     }
     .auth-card {
-        width: min(94vw, 420px); background: var(--background-color);
+        width: min(94vw, 420px);
+        background: var(--background-color);
         border-radius: 18px; padding: 28px 28px 22px 28px;
         box-shadow: 0 12px 30px rgba(0,0,0,0.08); text-align: center;
         animation: fadeIn .25s ease-out;
@@ -127,9 +115,8 @@ def check_access() -> bool:
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="auth-card">', unsafe_allow_html=True)
-    # Uwaga: jeśli obrazek ma białe tło, zamień na emoji lub PNG z alpha
     st.image("https://img.icons8.com/color/96/brain.png", width=76)
-    st.markdown('<div class="auth-title"> Szacowanie ryzyka cech napadów</div>', unsafe_allow_html=True)
+    st.markdown('<div class="auth-title">Szacowanie ryzyka cech napadów</div>', unsafe_allow_html=True)
     st.markdown('<div class="auth-sub">Wpisz kod dostępu, aby kontynuować</div>', unsafe_allow_html=True)
 
     with st.form("login_form", clear_on_submit=False):
@@ -143,7 +130,6 @@ def check_access() -> bool:
             st.session_state.auth_ok = True
         else:
             st.warning("Niepoprawny kod. Spróbuj ponownie.")
-
     st.stop()
 
 if not check_access():
@@ -247,7 +233,7 @@ else:
     st.markdown(f'<div class="progress-dots" aria-label="postęp pytań">{dots}</div>', unsafe_allow_html=True)
     st.markdown(f'<span class="badge">Pytanie {q_idx + 1} z {nq}</span>', unsafe_allow_html=True)
 
-# ---------------------- 🗳️ WYBÓR — AUTO-ADVANCE, NEUTRALNY LOOK ----------------------
+# ---------------------- 🗳️ PYTANIE ----------------------
 def tri_buttons(qid: str):
     st.markdown('<div class="choice-grid">', unsafe_allow_html=True)
     cols = st.columns(3)
@@ -293,7 +279,7 @@ if not st.session_state.finished and nq > 0:
 
 st.divider()
 
-# ---------------------- 📊 WYNIK – READ-ONLY ----------------------
+# ---------------------- 📊 WYNIK ----------------------
 if st.session_state.finished and st.session_state.result:
     res = st.session_state.result
     score, max_score, prob = res["score"], res["max_score"], res["prob"]
