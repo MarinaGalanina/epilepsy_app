@@ -8,33 +8,49 @@ st.set_page_config(
     page_title="Ryzyko cech napadu (DEMO)",
     page_icon="🧠",
     layout="wide",
-    initial_sidebar_state="collapsed"  # ukryj sidebar do czasu logowania
+    initial_sidebar_state="collapsed"  # zostawiamy collapsed, ale ukryjemy kontrolkę
 )
 
-# 🔧 Usuń dekoracje i górne odstępy UI Streamlita (żeby nic nie „wystawało” nad loginem)
+# ---------------------- 🔧 RADYKALNE USUNIĘCIE GÓRY + KONTROLKI SIDEBARU ----------------------
 st.markdown("""
 <style>
-/* dekoracyjna pigułka / header / toolbar / badge */
+/* 1) Header/toolbar/decoracje */
 div[data-testid="stDecoration"],
-header [data-testid="stDecoration"],
+header, div[data-testid="stHeader"], div[data-testid="stToolbar"],
 section[data-testid="stDecoration"],
-div[data-testid="stHeader"], header, div[data-testid="stToolbar"],
 div[class*="viewerBadge_"], a[data-testid="viewer-badge"],
-button[kind="header"], div[data-testid="stStatusWidget"] { display:none !important; }
-
-/* wyzeruj górne odstępy kontenera aplikacji */
-div[data-testid="stAppViewContainer"] { padding-top:0 !important; margin-top:0 !important; }
-div[data-testid="stAppViewContainer"] > .main { padding-top:0 !important; padding-bottom:0 !important; }
-.block-container { padding-top:0 !important; }
-
-/* jednolite tło, żeby nic nie „przebijało” */
-html, body, [data-testid="stAppViewContainer"] {
-  background: var(--background-color, #ffffff) !important;
+button[kind="header"], div[data-testid="stStatusWidget"],
+[data-testid="stStatusWidget"], [data-testid="stAppStatusWidget"],
+[data-testid="stAppStatusContainer"], header[role="banner"], div[role="banner"] {
+  display:none !important; visibility:hidden !important; opacity:0 !important;
+  height:0 !important; width:0 !important; position:fixed !important; z-index:-9999 !important;
 }
+
+/* 2) *** KONTROLKA ZWIJANIA SIDEBARU (to Twoje "białe jajko") *** */
+div[data-testid="collapsedControl"],
+div[data-testid="stSidebarCollapseButton"],
+button[data-testid="stSidebarCollapseButton"],
+div[aria-label="Show sidebar"],
+div[aria-label="Hide sidebar"] {
+  display:none !important; visibility:hidden !important; opacity:0 !important;
+  height:0 !important; width:0 !important; position:fixed !important; z-index:-9999 !important;
+}
+
+/* 3) Zerowanie paddingów/marginesów + tło */
+html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"] {
+  margin:0 !important; padding:0 !important; background:#ffffff !important; overflow-x:hidden !important;
+}
+div[data-testid="stAppViewContainer"] > .main {
+  padding-top:0 !important; margin-top:0 !important; padding-bottom:0 !important;
+}
+
+/* 4) Na wszelki wypadek: globalny reset cieni i nadmiernych zaokrągleń,
+      potem przywrócimy je lokalnie dla karty logowania */
+* { box-shadow: none !important; filter: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------- 🔒 LOGOWANIE (center + bez st.rerun) ----------------------
+# ---------------------- 🔒 LOGOWANIE ----------------------
 def check_access() -> bool:
     ACCESS_CODE = st.secrets.get("ACCESS_CODE") or os.environ.get("ACCESS_CODE")
     if not ACCESS_CODE:
@@ -43,34 +59,27 @@ def check_access() -> bool:
     if st.session_state.get("auth_ok", False):
         return True
 
-    # Dokładne centrowanie karty logowania
+    # Karta logowania – idealnie wyśrodkowana
     st.markdown("""
     <style>
       div[data-testid="stAppViewContainer"] > .main {
-        height: 100vh;                   /* pełny viewport */
-        display: flex;
-        align-items: center;             /* pion */
-        justify-content: center;         /* poziom */
+        height: 100vh; display:flex; align-items:center; justify-content:center;
       }
-      .auth-card{
-        width: min(94vw, 420px);
-        background: var(--background-color, #ffffff);
-        border-radius: 18px;
-        padding: 28px 28px 22px;
-        box-shadow: 0 12px 30px rgba(0,0,0,.08);
-        text-align:center;
-        animation: fadeIn .25s ease-out;
+      .auth-card {
+        width:min(94vw, 420px);
+        background:#ffffff;
+        border-radius:18px;
+        padding:28px 28px 22px;
+        /* lokalnie przywracamy subtelny cień TYLKO dla karty */
+        box-shadow: 0 12px 30px rgba(0,0,0,.08) !important;
+        text-align:center; animation:fadeIn .25s ease-out;
       }
-      @keyframes fadeIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
-      .auth-emoji{
-        font-size: 56px; line-height: 1; margin-bottom: 6px;
-        user-select:none;
-      }
+      @keyframes fadeIn { from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+      .auth-emoji { font-size:58px; line-height:1; margin-bottom:8px; user-select:none; }
     </style>
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="auth-card">', unsafe_allow_html=True)
-    # 👉 ZAMIANA obrazka z białym tłem na czyste emoji (brak „białego jajka”)
     st.markdown('<div class="auth-emoji">🧠</div>', unsafe_allow_html=True)
     st.markdown("### Szacowanie ryzyka cech napadów")
     st.write("Wpisz kod dostępu, aby kontynuować")
@@ -81,14 +90,13 @@ def check_access() -> bool:
 
     if ok:
         if code == ACCESS_CODE:
-            st.session_state.auth_ok = True   # kolejny render pokaże appkę
+            st.session_state.auth_ok = True
         else:
             st.error("Błędny kod ❌")
 
     st.stop()
 
-
-# ---------------------- ⛔️ Strażnik logowania ----------------------
+# ---------------------- ⛔️ STRAŻNIK LOGOWANIA ----------------------
 if not check_access():
     st.stop()
 
@@ -96,12 +104,11 @@ st.sidebar.success("Zalogowano ✅")
 if st.sidebar.button("Wyloguj"):
     st.session_state.auth_ok = False
 
-# ---------------------- 🧠 GŁÓWNA CZĘŚĆ APLIKACJI ----------------------
+# ---------------------- 🧠 GŁÓWNA CZĘŚĆ ----------------------
 st.title("🧠 Szacowanie ryzyka cech napadów – DEMO")
 st.caption("Narzędzie edukacyjne. Nie służy do diagnozy. "
            "W razie niepokojących objawów skontaktuj się z lekarzem lub dzwoń na 112.")
 
-# ---------------------- 📄 WCZYTANIE ANKIETY ----------------------
 @st.cache_data
 def load_survey(path: str):
     with open(path, "r", encoding="utf-8") as f:
@@ -111,7 +118,6 @@ survey = load_survey("survey.json")
 paths = {p["id"]: p for p in survey["paths"]}
 path_labels = {p["label"]: p["id"] for p in survey["paths"]}
 
-# ---------------------- 🧩 INTERFEJS ----------------------
 st.sidebar.header("Wybór ścieżki (typ incydentu)")
 chosen_label = st.sidebar.radio("Typ incydentu:", list(path_labels.keys()))
 path_id = path_labels[chosen_label]
@@ -120,7 +126,6 @@ path = paths[path_id]
 st.header(f"Ścieżka: {chosen_label}")
 st.write("Odpowiedz na poniższe pytania. Jeśli nie jesteś pewna/pewien, wybierz „nie wiem”.")
 
-# ---------------------- 🔢 OBLICZANIE WYNIKU ----------------------
 responses = {}
 max_score = 0.0
 score = 0.0
@@ -155,7 +160,6 @@ for q in path["questions"]:
 
 st.divider()
 
-# ---------------------- 📊 WYNIK ----------------------
 if max_score == 0:
     prob = 0.0
 else:
