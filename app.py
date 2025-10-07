@@ -12,70 +12,89 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ---------------------- ✨ GLOBALNY, RESPONSYWNY STYL (bez czerwieni) ----------------------
+# ---------------------- ✨ GLOBALNY STYL — BEZ CZERWIENI, BEZ BIAŁEJ "PIGUŁY" ----------------------
 st.markdown("""
 <style>
-:root { --radius: 16px; }
-div[data-testid="stAppViewContainer"] .block-container { padding-top: 12px; padding-bottom: 28px; max-width: 980px; }
-.stButton>button, .stDownloadButton>button { border-radius: var(--radius); font-weight: 700; padding: 0.9rem 1rem; }
+:root { --radius: 14px; }
+div[data-testid="stAppViewContainer"] .block-container {
+  padding-top: 12px; padding-bottom: 28px; max-width: 980px;
+}
 .stAlert { border-radius: var(--radius); }
 .stProgress > div > div > div { border-radius: 999px; }
-.q-card { border:1px solid rgba(0,0,0,.08); border-radius: var(--radius); padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,.05); background: var(--background-color); }
-.q-title { font-size:1.06rem; font-weight:700; margin:0 0 .5rem 0; line-height:1.35; }
-.badge { display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .7rem; border-radius:999px; background:rgba(0,0,0,.06); font-size:.85rem; }
-.progress-dots { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 4px 0; }
+
+/* Karta pytania: bez białego tła i bez cienia */
+.q-card {
+  border:1px solid rgba(0,0,0,.10);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: transparent;         /* << usuwa białe tło */
+  box-shadow: none;                /* << usuwa "pigułę" */
+}
+.q-title { font-size:1.05rem; font-weight:700; margin:0 0 .25rem 0; }
+
+/* Dots i badge */
+.progress-dots { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 6px 0; }
 .dot { width:10px; height:10px; border-radius:50%; background:rgba(0,0,0,.15); }
-.dot.on { background:rgba(0,0,0,.5); }
-.lock-note { font-size:.9rem; opacity:.8; }
+.dot.on { background:rgba(0,0,0,.45); }
+.badge { display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .7rem;
+  border-radius:999px; background:rgba(0,0,0,.06); font-size:.85rem; }
+
+/* Przyciski wyboru – neutralne, wszystkie identyczne (brak czerwieni / primary) */
+.choice-grid { display:grid; grid-template-columns: 1fr; gap:10px; margin-top:.5rem; }
+@media (min-width:560px){ .choice-grid{ grid-template-columns: repeat(3, 1fr); } }
+.stButton>button {
+  border-radius: var(--radius);
+  font-weight: 700;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(0,0,0,.12);
+  background: rgba(0,0,0,.03);      /* lekko szare tło */
+  color: inherit;                    /* systemowy tekst */
+}
+.stButton>button:hover {
+  background: rgba(0,0,0,.06);
+  border-color: rgba(0,0,0,.16);
+}
+.stButton>button:focus {
+  outline: 2px solid rgba(0,0,0,.18);
+}
+
+/* Select neutralny (dla pytań typu select) */
+div[data-baseweb="select"] > div {
+  border-radius: var(--radius);
+  border-color: rgba(0,0,0,.12);
+  background: rgba(0,0,0,.02);
+}
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------- 🔒 LOGOWANIE (bez czerwonych alertów/emoji) ----------------------
+# ---------------------- 🔒 LOGOWANIE (Twoje – bez zmian) ----------------------
 def check_access() -> bool:
-    """
-    Ekran logowania wyświetlany dokładnie na środku ekranu.
-    Wymaga ACCESS_CODE w st.secrets lub zmiennej środowiskowej.
-    """
     ACCESS_CODE = st.secrets.get("ACCESS_CODE") or os.environ.get("ACCESS_CODE")
     if not ACCESS_CODE:
         st.warning("Brak ustawionego ACCESS_CODE w Secrets/ENV. Skontaktuj się z administratorem.")
         st.stop()
 
-    # status sesji
-    auth_ok = st.session_state.get("auth_ok", False)
-    if auth_ok:
+    if st.session_state.get("auth_ok", False):
         return True
 
-    # CSS: centrowanie głównego kontenera
-    st.markdown(
-        """
-        <style>
-        div[data-testid="stAppViewContainer"] > .main {
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
-        }
-        .auth-card {
-            width: min(94vw, 420px);
-            background: var(--background-color);
-            border-radius: 18px;
-            padding: 28px 28px 22px 28px;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.08);
-            text-align: center;
-            animation: fadeIn .25s ease-out;
-        }
-        .auth-title { margin: 6px 0 2px 0; font-weight: 700; }
-        .auth-sub   { opacity: .8; margin-bottom: 14px; }
-        @keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    st.markdown("""
+    <style>
+    div[data-testid="stAppViewContainer"] > .main {
+        height: 100vh; display: flex; align-items: center; justify-content: center;
+        padding-top: 0 !important; padding-bottom: 0 !important;
+    }
+    .auth-card {
+        width: min(94vw, 420px); background: var(--background-color);
+        border-radius: 18px; padding: 28px 28px 22px 28px;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.08); text-align: center;
+        animation: fadeIn .25s ease-out;
+    }
+    .auth-title { margin: 6px 0 2px 0; font-weight: 700; }
+    .auth-sub   { opacity: .8; margin-bottom: 14px; }
+    @keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
+    </style>
+    """, unsafe_allow_html=True)
 
-    # środkowa karta logowania
     st.markdown('<div class="auth-card">', unsafe_allow_html=True)
     st.image("https://img.icons8.com/color/96/brain.png", width=76)
     st.markdown('<div class="auth-title"> Szacowanie ryzyka cech napadów</div>', unsafe_allow_html=True)
@@ -91,12 +110,10 @@ def check_access() -> bool:
         if code == ACCESS_CODE:
             st.session_state.auth_ok = True
         else:
-            # neutralny komunikat bez czerwieni/emoji
             st.warning("Niepoprawny kod. Spróbuj ponownie.")
 
     st.stop()
 
-# ---------------------- ⛔️ Strażnik logowania ----------------------
 if not check_access():
     st.stop()
 
@@ -124,7 +141,7 @@ except FileNotFoundError:
 paths: Dict[str, Dict[str, Any]] = {p["id"]: p for p in survey["paths"]}
 path_labels: Dict[str, str] = {p["label"]: p["id"] for p in survey["paths"]}
 
-# ---------------------- 🧭 STAN SESJI ----------------------
+# ---------------------- 🧭 STAN ----------------------
 def _init_state():
     if "selected_path_id" not in st.session_state:
         st.session_state.selected_path_id = list(path_labels.values())[0]
@@ -136,13 +153,12 @@ def _init_state():
         st.session_state.finished = False
     if "result" not in st.session_state:
         st.session_state.result = None
-
 _init_state()
 
 # ---------------------- 🧩 WYBÓR ŚCIEŻKI ----------------------
 st.sidebar.header("Wybór ścieżki (typ incydentu)")
 if st.session_state.finished:
-    st.sidebar.info("Wynik obliczony. Aby rozpocząć nowy przebieg, kliknij „Zacznij od nowa”.")
+    st.sidebar.info("Wynik obliczony. Aby zacząć od nowa, kliknij „Zacznij od nowa”.")
     st.sidebar.write(f"Wybrana ścieżka: **{[k for k,v in path_labels.items() if v==st.session_state.selected_path_id][0]}**")
 else:
     chosen_label = st.sidebar.radio("Typ incydentu:", list(path_labels.keys()))
@@ -199,22 +215,23 @@ else:
     st.markdown(f'<div class="progress-dots" aria-label="postęp pytań">{dots}</div>', unsafe_allow_html=True)
     st.markdown(f'<span class="badge">Pytanie {q_idx + 1} z {nq}</span>', unsafe_allow_html=True)
 
-# ---------------------- 🗳️ PRZYCISKI WYBORU (auto-advance, neutralne) ----------------------
+# ---------------------- 🗳️ WYBÓR — AUTO-ADVANCE, NEUTRALNY LOOK ----------------------
 def tri_buttons(qid: str):
+    st.markdown('<div class="choice-grid">', unsafe_allow_html=True)
     cols = st.columns(3)
     clicked = None
     with cols[0]:
-        if st.button("Nie", key=f"btn_{qid}_nie", use_container_width=True, type="secondary"):
+        if st.button("Nie", key=f"btn_{qid}_nie", use_container_width=True):
             clicked = "nie"
     with cols[1]:
-        if st.button("Tak", key=f"btn_{qid}_tak", use_container_width=True, type="primary"):
+        if st.button("Tak", key=f"btn_{qid}_tak", use_container_width=True):
             clicked = "tak"
     with cols[2]:
-        if st.button("Nie wiem", key=f"btn_{qid}_niewiem", use_container_width=True, type="secondary"):
+        if st.button("Nie wiem", key=f"btn_{qid}_niewiem", use_container_width=True):
             clicked = "nie wiem"
+    st.markdown('</div>', unsafe_allow_html=True)
     return clicked
 
-# ---------------------- 🎛️ JEDNO PYTANIE NA EKRANIE — BEZ POWROTU ----------------------
 if not st.session_state.finished and nq > 0:
     q = questions[st.session_state.current_q_idx]
     st.markdown('<div class="q-card">', unsafe_allow_html=True)
@@ -231,7 +248,6 @@ if not st.session_state.finished and nq > 0:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # AUTO-ADVANCE & LOCK-IN
     if answer_clicked is not None:
         st.session_state.answers[q["id"]] = answer_clicked
         if st.session_state.current_q_idx + 1 >= nq:
@@ -249,13 +265,13 @@ st.divider()
 if st.session_state.finished and st.session_state.result:
     res = st.session_state.result
     score, max_score, prob = res["score"], res["max_score"], res["prob"]
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Szacowane ryzyko", f"{prob * 100:.0f}%")
-    with col2:
+
+    c1, c2, c3 = st.columns(3)
+    with c1: st.metric("Szacowane ryzyko", f"{prob * 100:.0f}%")
+    with c2:
         st.write("**Suma punktów**")
         st.write(f"{score:.1f} / {max_score:.1f}")
-    with col3:
+    with c3:
         level = "niskie" if prob < 0.3 else ("umiarkowane" if prob < 0.7 else "wysokie")
         st.metric("Poziom", level)
 
@@ -264,23 +280,21 @@ if st.session_state.finished and st.session_state.result:
             "path_label": label_text,
             "version": survey["meta"].get("version", "unknown"),
             "responses": st.session_state.answers,
-            "score": score,
-            "max_score": max_score,
-            "probability": prob
+            "score": score, "max_score": max_score, "probability": prob
         }
         st.json(pretty)
         st.download_button(
             "Pobierz podsumowanie (JSON)",
             data=json.dumps(pretty, ensure_ascii=False, indent=2).encode("utf-8"),
-            file_name="wynik_ankiety.json",
-            mime="application/json"
+            file_name="wynik_ankiety.json", mime="application/json"
         )
 
     st.info("To narzędzie ma charakter edukacyjny i nie zastępuje porady lekarskiej.")
-    st.caption('<span class="lock-note">Odpowiedzi są zablokowane. Aby wypełnić ponownie, uruchom nowy przebieg.</span>', unsafe_allow_html=True)
-
     if st.button("Zacznij od nowa"):
         st.session_state.current_q_idx = 0
         st.session_state.answers = {}
         st.session_state.finished = False
-        st.session_state._
+        st.session_state.result = None
+        st.rerun()
+
+st.caption("Wersja: " + survey["meta"].get("version", "unknown"))
