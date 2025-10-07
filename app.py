@@ -3,74 +3,57 @@ import numpy as np
 import streamlit as st
 import os
 
-# ---------------------- ⚙️ USTAWIENIA STRONY ----------------------
-
-st.set_page_config(page_title="Ryzyko cech napadu (DEMO)", page_icon="🧠", layout="wide")
-
-
 # ---------------------- 🔒 LOGOWANIE ----------------------
 
 def check_access() -> bool:
-    """Prosty ekran logowania wyświetlany na środku ekranu."""
+    """Prosty system logowania oparty na ACCESS_CODE (z secrets lub ENV)."""
+    st.sidebar.markdown("### 🔒 Dostęp")
+
+    # Odczyt kodu z konfiguracji (Streamlit Secrets lub zmienna środowiskowa)
     ACCESS_CODE = st.secrets.get("ACCESS_CODE") or os.environ.get("ACCESS_CODE")
+
     if not ACCESS_CODE:
-        st.error("Brak ustawionego ACCESS_CODE w Secrets/ENV.")
+        st.sidebar.error("Brak ustawionego ACCESS_CODE w Secrets/ENV.")
         st.stop()
 
+    # Przechowywanie statusu logowania w sesji
     if "auth_ok" not in st.session_state:
         st.session_state.auth_ok = False
 
-    # Jeżeli już zalogowany — od razu zwróć True
+    # Formularz logowania
+    if not st.session_state.auth_ok:
+        with st.sidebar.form("login_form", clear_on_submit=False):
+            code = st.text_input("Wpisz kod dostępu", type="password")
+            submitted = st.form_submit_button("Zaloguj")
+
+        if submitted:
+            if code == ACCESS_CODE:
+                st.session_state.auth_ok = True
+                st.sidebar.success("Zalogowano ✅")
+            else:
+                st.sidebar.error("Błędny kod ❌")
+
+    # Wylogowanie
     if st.session_state.auth_ok:
+        if st.sidebar.button("Wyloguj"):
+            st.session_state.auth_ok = False
+            st.experimental_rerun()
         return True
 
-    # Ekran logowania – środkowy layout
-    st.markdown(
-        """
-        <style>
-        .center-box {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 80vh;
-        }
-        .login-box {
-            padding: 2rem 3rem;
-            border-radius: 15px;
-            background-color: #f8f9fa;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-            text-align: center;
-            width: 380px;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-    with st.container():
-        st.markdown('<div class="center-box"><div class="login-box">', unsafe_allow_html=True)
-        st.image("https://img.icons8.com/color/96/brain.png", width=80)
-        st.markdown("## 🧠 Szacowanie ryzyka cech napadów")
-        st.write("Wpisz kod dostępu, aby kontynuować.")
-        code = st.text_input("Kod dostępu", type="password", label_visibility="collapsed")
-        login_btn = st.button("Zaloguj", use_container_width=True)
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-    if login_btn:
-        if code == ACCESS_CODE:
-            st.session_state.auth_ok = True
-            st.experimental_rerun()
-        else:
-            st.error("Błędny kod ❌")
-
-    # Zatrzymaj render, jeśli nie zalogowany
+    # Jeśli użytkownik nie jest zalogowany, zatrzymujemy działanie aplikacji
     st.stop()
 
 
-# ---------------------- 🔧 GŁÓWNY BLOK ----------------------
+# ---------------------- ⚙️ USTAWIENIA STRONY ----------------------
 
+st.set_page_config(page_title="Ryzyko cech napadu (DEMO)", page_icon="🧠")
+
+# Zatrzymaj aplikację, jeśli użytkownik nie wpisał poprawnego kodu
 if not check_access():
     st.stop()
+
+
+# ---------------------- 🧠 GŁÓWNA CZĘŚĆ APLIKACJI ----------------------
 
 st.title("🧠 Szacowanie ryzyka cech napadów – DEMO")
 st.caption("Narzędzie edukacyjne. Nie służy do diagnozy. "
@@ -85,6 +68,7 @@ def load_survey(path: str):
         return json.load(f)
 
 survey = load_survey("survey.json")
+
 paths = {p["id"]: p for p in survey["paths"]}
 path_labels = {p["label"]: p["id"] for p in survey["paths"]}
 
@@ -120,6 +104,7 @@ def handle_question(q):
             score += float(q.get("weight_yes", 0))
         elif ans == "nie wiem":
             score += float(q.get("weight_maybe", 0))
+
     elif qtype == "select":
         labels = [opt["label"] for opt in q["options"]]
         ans = st.selectbox(q["text"], labels, key=q["id"])
@@ -131,11 +116,11 @@ def handle_question(q):
                 score += float(opt.get("weight", 0))
                 break
 
+
 for q in path["questions"]:
     handle_question(q)
 
 st.divider()
-
 
 # ---------------------- 📊 WYNIK ----------------------
 
