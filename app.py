@@ -270,12 +270,14 @@ if st.session_state.finished and st.session_state.result:
             file_name="wynik_ankiety.json", mime="application/json"
         )
 
-    st.info("To narzędzie ma charakter edukacyjny i nie zastępuje ostatecznej diagnozy.")
-    if st.button("Zacznij od nowa"):
-        st.session_state.current_q_idx = 0
-        st.session_state.answers = {}
-        st.session_state.finished = False
-        st.session_state.result = None
-        st.rerun()
+    #st.info("To narzędzie ma charakter edukacyjny i nie zastępuje ostatecznej diagnozy.")
+    center_col = st.columns([1, 1, 1])[1]
+    with center_col:
+        if st.button("Zacznij od nowa", use_container_width=True):
+            st.session_state.current_q_idx = 0
+            st.session_state.answers = {}
+            st.session_state.finished = False
+            st.session_state.result = None
+            st.rerun()
 
 st.caption("Wersja: " + survey.get("meta", {}).get("version", "unknown"))
