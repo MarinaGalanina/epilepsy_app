@@ -3,7 +3,113 @@ import numpy as np
 import streamlit as st
 import os
 from typing import Dict, Any, List
+import sqlite3, uuid, time, json as _json
+from datetime import datetime
+import requests
 
+
+if "user_id" not in st.session_state:
+    st.session_state.user_id = str(uuid.uuid4())  # anonimowy UIDs
+
+
+@st.cache_resource
+def get_db():
+    conn = sqlite3.connect("data.db", check_same_thread=False)
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS progress (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        created_at TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        survey_version TEXT,
+        path_id TEXT,
+        q_idx INTEGER,
+        answers_json TEXT,      -- pełny słownik odpowiedzi (draft)
+        finished INTEGER,       -- 0/1
+        result_json TEXT        -- wynik końcowy (jeśli finished=1)
+    )
+    """)
+    return conn
+
+def _now_iso():
+    return datetime.utcnow().isoformat()
+
+def save_locally(*, user_id, survey_version, path_id, q_idx, answers_dict, finished, result_dict=None):
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO progress (created_at, user_id, survey_version, path_id, q_idx, answers_json, finished, result_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            _now_iso(),
+            user_id,
+            survey_version,
+            path_id,
+            int(q_idx) if q_idx is not None else None,
+            _json.dumps(answers_dict, ensure_ascii=False),
+            1 if finished else 0,
+            _json.dumps(result_dict, ensure_ascii=False) if result_dict is not None else None
+        )
+    )
+    conn.commit()
+
+# --- [4] OPCJONALNY EXPORT DO CHMURY (Supabase REST lub dowolny webhook) ---
+def save_remote(payload: dict):
+    # a) Webhook (np. Make/Zapier) – podaj URL w secrets: WEBHOOK_URL
+    WEBHOOK_URL = st.secrets.get("WEBHOOK_URL")
+    if WEBHOOK_URL:
+        try:
+            requests.post(WEBHOOK_URL, json=payload, timeout=5)
+        except Exception as e:
+            st.debug(f"Webhook save failed: {e}") if hasattr(st, "debug") else None
+
+    # b) Supabase REST – stwórz tabelę 'progress' o polach jak wyżej
+    SUPABASE_URL = st.secrets.get("SUPABASE_URL")
+    SUPABASE_KEY = st.secrets.get("SUPABASE_KEY")
+    if SUPABASE_URL and SUPABASE_KEY:
+        try:
+            # Wymaga skonfigurowanego REST i uprawnień do inserta na tabeli 'progress'
+            r = requests.post(
+                f"{SUPABASE_URL}/rest/v1/progress",
+                headers={
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal"
+                },
+                json=payload,
+                timeout=5
+            )
+            # Opcjonalnie: sprawdź r.status_code
+        except Exception as e:
+            st.debug(f"Supabase save failed: {e}") if hasattr(st, "debug") else None
+
+def autosave(*, finished=False, result=None):
+    # Zbierz metadane
+    survey_version = survey.get("meta", {}).get("version", "unknown")
+    path_id = st.session_state.selected_path_id
+    q_idx = st.session_state.current_q_idx
+    payload = {
+        "created_at": _now_iso(),
+        "user_id": st.session_state.user_id,
+        "survey_version": survey_version,
+        "path_id": path_id,
+        "q_idx": q_idx,
+        "answers": st.session_state.answers,
+        "finished": finished,
+        "result": result
+    }
+
+    # Lokalnie
+    save_locally(
+        user_id=st.session_state.user_id,
+        survey_version=survey_version,
+        path_id=path_id,
+        q_idx=q_idx,
+        answers_dict=st.session_state.answers,
+        finished=finished,
+        result_dict=result
+    )
+
+    # Opcjonalnie chmura
+    save_remote(payload)
 # ---------------------- ⚙️ USTAWIENIA STRONY ----------------------
 st.set_page_config(
     page_title="Ryzyko cech napadu (DEMO)",
@@ -231,10 +337,18 @@ if not st.session_state.finished and nq > 0:
 
     if answer_clicked is not None:
         st.session_state.answers[q["id"]] = answer_clicked
+
+        # >>> AUTOSAVE DRAFT po odpowiedzi <<<
+        autosave(finished=False, result=None)
+
         if st.session_state.current_q_idx + 1 >= nq:
             score, max_score, prob = compute_scores(st.session_state.answers, path)
             st.session_state.result = {"score": score, "max_score": max_score, "prob": prob}
             st.session_state.finished = True
+
+            # >>> AUTOSAVE WYNIK KOŃCOWY <<<
+            autosave(finished=True, result=st.session_state.result)
+
             st.rerun()
         else:
             st.session_state.current_q_idx += 1
@@ -273,7 +387,8 @@ if st.session_state.finished and st.session_state.result:
     #st.info("To narzędzie ma charakter edukacyjny i nie zastępuje ostatecznej diagnozy.")
     center_col = st.columns([1, 1, 1])[1]
     with center_col:
-        if st.button("Zacznij od nowa", use_container_width=True):
+        if st.button("Zacznij od nowa"):
+            autosave(finished=False, result={"event": "reset"})  # opcjonalny log
             st.session_state.current_q_idx = 0
             st.session_state.answers = {}
             st.session_state.finished = False
