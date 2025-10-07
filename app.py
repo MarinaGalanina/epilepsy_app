@@ -12,62 +12,116 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ---------------------- ✨ GLOBALNY STYL — BEZ CZERWIENI, BEZ BIAŁEJ "PIGUŁY" ----------------------
+# ---------------------- ✨ GLOBALNY STYL (BEZ „PIGUŁ” I BIAŁYCH PASÓW) ----------------------
 st.markdown("""
 <style>
-:root { --radius: 14px; }
-div[data-testid="stAppViewContainer"] .block-container {
-  padding-top: 12px; padding-bottom: 28px; max-width: 980px;
+/* 1) Usuń wszystkie ozdobniki Streamlit + wyzeruj górne odstępy */
+div[data-testid="stDecoration"],
+header, div[data-testid="stToolbar"],
+div[data-testid="stHeader"], section[data-testid="stHeader"],
+div[data-testid="stStatusWidget"],
+a[data-testid="viewer-badge"],
+button[kind="header"] {
+  display: none !important;
 }
-.stAlert { border-radius: var(--radius); }
+
+/* 2) Kontener aplikacji: brak górnego marginesu, schludna szerokość */
+div[data-testid="stAppViewContainer"] > .main {
+  padding-top: 0 !important;
+  padding-bottom: 24px !important;
+}
+div[data-testid="stAppViewContainer"] .block-container {
+  padding-top: 12px !important;
+  padding-bottom: 28px !important;
+  max-width: 1080px;
+}
+
+/* 3) Ogólne zmienne i drobne wygładzenia */
+:root { --radius: 14px; }
+.stAlert, .stTextInput>div>div, .stNumberInput>div>div, .stSelectbox>div>div {
+  border-radius: var(--radius);
+}
 .stProgress > div > div > div { border-radius: 999px; }
 
-/* Karta pytania: bez białego tła i bez cienia */
+/* 4) Karta pytania – transparent, bez cienia, bez białej „piguły” */
 .q-card {
-  border:1px solid rgba(0,0,0,.10);
+  border: 1px solid rgba(0,0,0,.10);
   border-radius: var(--radius);
   padding: 16px;
-  background: transparent;         /* << usuwa białe tło */
-  box-shadow: none;                /* << usuwa "pigułę" */
+  background: transparent;
+  box-shadow: none;
 }
-.q-title { font-size:1.05rem; font-weight:700; margin:0 0 .25rem 0; }
+.q-title { font-size: 1.06rem; font-weight: 700; margin: 0 0 .35rem 0; }
 
-/* Dots i badge */
-.progress-dots { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 6px 0; }
+/* 5) Dots + badge postępu */
+.progress-dots { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0 6px 0; }
 .dot { width:10px; height:10px; border-radius:50%; background:rgba(0,0,0,.15); }
 .dot.on { background:rgba(0,0,0,.45); }
-.badge { display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .7rem;
-  border-radius:999px; background:rgba(0,0,0,.06); font-size:.85rem; }
+.badge {
+  display:inline-flex; align-items:center; gap:.5rem;
+  padding:.25rem .7rem; border-radius:999px;
+  background:rgba(0,0,0,.06); font-size:.85rem;
+}
 
-/* Przyciski wyboru – neutralne, wszystkie identyczne (brak czerwieni / primary) */
+/* 6) Przyciski neutralne (zero „primary”/czerwieni) */
 .choice-grid { display:grid; grid-template-columns: 1fr; gap:10px; margin-top:.5rem; }
 @media (min-width:560px){ .choice-grid{ grid-template-columns: repeat(3, 1fr); } }
+
 .stButton>button {
   border-radius: var(--radius);
   font-weight: 700;
   padding: 0.9rem 1rem;
-  border: 1px solid rgba(0,0,0,.12);
-  background: rgba(0,0,0,.03);      /* lekko szare tło */
-  color: inherit;                    /* systemowy tekst */
+  border: 1px solid rgba(0,0,0,.14);
+  background: rgba(0,0,0,.03);
+  color: inherit;
 }
 .stButton>button:hover {
   background: rgba(0,0,0,.06);
-  border-color: rgba(0,0,0,.16);
+  border-color: rgba(0,0,0,.18);
 }
-.stButton>button:focus {
-  outline: 2px solid rgba(0,0,0,.18);
+.stButton>button:focus { outline: 2px solid rgba(0,0,0,.18); }
+
+/* 7) Select neutralny */
+div[data-baseweb="select"] > div {
+  border-radius: var(--radius) !important;
+  border-color: rgba(0,0,0,.12) !important;
+  background: rgba(0,0,0,.02) !important;
 }
 
-/* Select neutralny (dla pytań typu select) */
-div[data-baseweb="select"] > div {
-  border-radius: var(--radius);
-  border-color: rgba(0,0,0,.12);
-  background: rgba(0,0,0,.02);
+/* 8) Ekran logowania: zero białych marginesów, czyste wycentrowanie */
+.fullscreen-center {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  margin: 0;
+}
+.auth-card {
+  width: min(94vw, 420px);
+  border-radius: 18px;
+  padding: 26px 26px 20px 26px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+  text-align: center;
+  background: var(--background-color, transparent);
+  animation: fadeIn .25s ease-out;
+}
+.auth-title { margin: 6px 0 2px 0; font-weight: 800; font-size: 1.1rem; }
+.auth-sub   { opacity: .85; margin-bottom: 14px; font-size: .95rem; }
+@keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
+
+/* 9) Drobny fix dla ciemnego motywu (kontrast) */
+@media (prefers-color-scheme: dark) {
+  .q-card { border-color: rgba(255,255,255,.12); }
+  .badge  { background: rgba(255,255,255,.08); }
+  .dot    { background: rgba(255,255,255,.20); }
+  .dot.on { background: rgba(255,255,255,.55); }
+  .stButton>button { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.16); }
+  .stButton>button:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.24); }
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------- 🔒 LOGOWANIE (Twoje – bez zmian) ----------------------
+# ---------------------- 🔒 LOGOWANIE ----------------------
 def check_access() -> bool:
     ACCESS_CODE = st.secrets.get("ACCESS_CODE") or os.environ.get("ACCESS_CODE")
     if not ACCESS_CODE:
@@ -77,34 +131,17 @@ def check_access() -> bool:
     if st.session_state.get("auth_ok", False):
         return True
 
-    st.markdown("""
-    <style>
-    div[data-testid="stAppViewContainer"] > .main {
-        height: 100vh; display: flex; align-items: center; justify-content: center;
-        padding-top: 0 !important; padding-bottom: 0 !important;
-    }
-    .auth-card {
-        width: min(94vw, 420px); background: var(--background-color);
-        border-radius: 18px; padding: 28px 28px 22px 28px;
-        box-shadow: 0 12px 30px rgba(0,0,0,0.08); text-align: center;
-        animation: fadeIn .25s ease-out;
-    }
-    .auth-title { margin: 6px 0 2px 0; font-weight: 700; }
-    .auth-sub   { opacity: .8; margin-bottom: 14px; }
-    @keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
-    </style>
-    """, unsafe_allow_html=True)
-
+    # Ekran logowania — zero białych pasów nad/pod, czysto wycentrowany
+    st.markdown('<div class="fullscreen-center">', unsafe_allow_html=True)
     st.markdown('<div class="auth-card">', unsafe_allow_html=True)
-    st.image("https://img.icons8.com/color/96/brain.png", width=76)
-    st.markdown('<div class="auth-title"> Szacowanie ryzyka cech napadów</div>', unsafe_allow_html=True)
+    st.markdown('<div class="auth-title">🧠 Szacowanie ryzyka cech napadów</div>', unsafe_allow_html=True)
     st.markdown('<div class="auth-sub">Wpisz kod dostępu, aby kontynuować</div>', unsafe_allow_html=True)
 
-    with st.form("login_form", clear_on_submit=False):
-        code = st.text_input("Kod dostępu", type="password", label_visibility="collapsed")
+    with st.form("login_form", clear_on_submit=False, border=False):
+        code = st.text_input("Kod dostępu", type="password", label_visibility="collapsed", key="access_code_input")
         submitted = st.form_submit_button("Zaloguj", use_container_width=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown('</div></div>', unsafe_allow_html=True)
 
     if submitted:
         if code == ACCESS_CODE:
@@ -118,13 +155,15 @@ if not check_access():
     st.stop()
 
 # ---------------------- 🔁 Wylogowanie ----------------------
-st.sidebar.success("Zalogowano")
-if st.sidebar.button("Wyloguj"):
-    st.session_state.auth_ok = False
+with st.sidebar:
+    st.success("Zalogowano")
+    if st.button("Wyloguj", use_container_width=True):
+        st.session_state.auth_ok = False
+        st.rerun()
 
 # ---------------------- 🧠 Tytuł i disclaimer ----------------------
 st.title("🧠 Szacowanie ryzyka cech napadów – DEMO")
-st.caption("Narzędzie edukacyjne. Nie służy do diagnozy. W razie niepokojących objawów skontaktuj się z lekarzem lub dzwoń na 112.")
+st.caption("Narzędzie edukacyjne. Nie służy do diagnozy. W razie niepokojących objawów skontaktuj się z lekarzem lub zadzwoń na 112.")
 
 # ---------------------- 📄 WCZYTANIE ANKIETY ----------------------
 @st.cache_data
@@ -156,19 +195,20 @@ def _init_state():
 _init_state()
 
 # ---------------------- 🧩 WYBÓR ŚCIEŻKI ----------------------
-st.sidebar.header("Wybór ścieżki (typ incydentu)")
-if st.session_state.finished:
-    st.sidebar.info("Wynik obliczony. Aby zacząć od nowa, kliknij „Zacznij od nowa”.")
-    st.sidebar.write(f"Wybrana ścieżka: **{[k for k,v in path_labels.items() if v==st.session_state.selected_path_id][0]}**")
-else:
-    chosen_label = st.sidebar.radio("Typ incydentu:", list(path_labels.keys()))
-    selected_path_id = path_labels[chosen_label]
-    if selected_path_id != st.session_state.selected_path_id:
-        st.session_state.selected_path_id = selected_path_id
-        st.session_state.current_q_idx = 0
-        st.session_state.answers = {}
-        st.session_state.finished = False
-        st.session_state.result = None
+with st.sidebar:
+    st.header("Wybór ścieżki")
+    if st.session_state.finished:
+        st.info("Wynik obliczony. Aby zacząć od nowa, kliknij „Zacznij od nowa”.")
+        st.write(f"Wybrana ścieżka: **{[k for k,v in path_labels.items() if v==st.session_state.selected_path_id][0]}**")
+    else:
+        chosen_label = st.radio("Typ incydentu:", list(path_labels.keys()), label_visibility="collapsed")
+        selected_path_id = path_labels[chosen_label]
+        if selected_path_id != st.session_state.selected_path_id:
+            st.session_state.selected_path_id = selected_path_id
+            st.session_state.current_q_idx = 0
+            st.session_state.answers = {}
+            st.session_state.finished = False
+            st.session_state.result = None
 
 path = paths[st.session_state.selected_path_id]
 questions: List[Dict[str, Any]] = path.get("questions", [])
@@ -195,12 +235,9 @@ def compute_scores(answers: Dict[str, Any], path: Dict[str, Any]):
                 if opt["label"] == chosen:
                     score += float(opt.get("weight", 0))
                     break
-    if max_score == 0:
-        prob = 0.0
-    else:
-        ratio = score / max_score
-        logit = (ratio - 0.5) * 6.0
-        prob = 1.0 / (1.0 + np.exp(-logit))
+    ratio = (score / max_score) if max_score else 0.0
+    logit = (ratio - 0.5) * 6.0
+    prob = 1.0 / (1.0 + np.exp(-logit)) if max_score else 0.0
     return score, max_score, prob
 
 # ---------------------- 🧱 NAGŁÓWEK + PROGRES ----------------------
@@ -215,7 +252,7 @@ else:
     st.markdown(f'<div class="progress-dots" aria-label="postęp pytań">{dots}</div>', unsafe_allow_html=True)
     st.markdown(f'<span class="badge">Pytanie {q_idx + 1} z {nq}</span>', unsafe_allow_html=True)
 
-# ---------------------- 🗳️ WYBÓR — AUTO-ADVANCE, NEUTRALNY LOOK ----------------------
+# ---------------------- 🗳️ WYBÓR — AUTO-ADVANCE ----------------------
 def tri_buttons(qid: str):
     st.markdown('<div class="choice-grid">', unsafe_allow_html=True)
     cols = st.columns(3)
@@ -267,7 +304,8 @@ if st.session_state.finished and st.session_state.result:
     score, max_score, prob = res["score"], res["max_score"], res["prob"]
 
     c1, c2, c3 = st.columns(3)
-    with c1: st.metric("Szacowane ryzyko", f"{prob * 100:.0f}%")
+    with c1:
+        st.metric("Szacowane ryzyko", f"{prob * 100:.0f}%")
     with c2:
         st.write("**Suma punktów**")
         st.write(f"{score:.1f} / {max_score:.1f}")
@@ -286,11 +324,13 @@ if st.session_state.finished and st.session_state.result:
         st.download_button(
             "Pobierz podsumowanie (JSON)",
             data=json.dumps(pretty, ensure_ascii=False, indent=2).encode("utf-8"),
-            file_name="wynik_ankiety.json", mime="application/json"
+            file_name="wynik_ankiety.json",
+            mime="application/json",
+            use_container_width=True
         )
 
     st.info("To narzędzie ma charakter edukacyjny i nie zastępuje porady lekarskiej.")
-    if st.button("Zacznij od nowa"):
+    if st.button("Zacznij od nowa", use_container_width=True):
         st.session_state.current_q_idx = 0
         st.session_state.answers = {}
         st.session_state.finished = False
