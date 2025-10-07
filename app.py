@@ -11,75 +11,72 @@ st.set_page_config(
     initial_sidebar_state="collapsed"  # ukryj sidebar do czasu logowania
 )
 
+st.markdown("""
+<style>
+/* schowaj nagłówek i toolbar Streamlita */
+div[data-testid="stDecoration"] { display: none !important; }   /* biała "pigułka" u góry */
+div[data-testid="stHeader"]     { display: none !important; }   /* pasek nagłówka */
+div[data-testid="stToolbar"]    { display: none !important; }   /* toolbar w trybie dev */
+
+/* wyzeruj górne marginesy/paddingi kontenera */
+div[data-testid="stAppViewContainer"] > .main {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* dla starego selektora (zgodność) */
+.main .block-container {
+  padding-top: 0 !important;
+}
+
+/* opcjonalnie: schowaj „Share/GitHub” w prawym górnym rogu podglądu */
+button[kind="header"] { display: none !important; }
+</style>
+""", unsafe_allow_html=True)
+
+
 # ---------------------- 🔒 LOGOWANIE (center + bez st.rerun) ----------------------
 def check_access() -> bool:
-    """
-    Ekran logowania wyświetlany dokładnie na środku ekranu.
-    Wymaga ACCESS_CODE w st.secrets lub zmiennej środowiskowej.
-    """
     ACCESS_CODE = st.secrets.get("ACCESS_CODE") or os.environ.get("ACCESS_CODE")
-    if not ACCESS_CODE:
-        st.error("Brak ustawionego ACCESS_CODE w Secrets/ENV.")
-        st.stop()
+    if not ACCESS_CODE: st.error("Brak ACCESS_CODE w Secrets/ENV."); st.stop()
 
-    # status sesji
-    auth_ok = st.session_state.get("auth_ok", False)
-    if auth_ok:
+    if st.session_state.get("auth_ok", False):  # już zalogowany
         return True
 
-    # CSS: centrowanie głównego kontenera, bez dziwnych marginesów
-    st.markdown(
-        """
-        <style>
-        /* uderzamy w główny kontener widoku */
-        div[data-testid="stAppViewContainer"] > .main {
-            height: 100vh;
-            min-height: 600px;
-            display: flex;
-            align-items: center;          /* pion */
-            justify-content: center;       /* poziom */
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
-        }
-        .auth-card {
-            width: min(94vw, 420px);
-            background: var(--background-color);
-            border-radius: 18px;
-            padding: 28px 28px 22px 28px;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.08);
-            text-align: center;
-            animation: fadeIn .25s ease-out;
-        }
-        .auth-title { margin: 6px 0 2px 0; font-weight: 700; }
-        .auth-sub   { opacity: .8; margin-bottom: 14px; }
-        .auth-btn button { width: 100%; height: 42px; font-weight: 600; }
-        @keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    # centrowanie właściwe
+    st.markdown("""
+    <style>
+    div[data-testid="stAppViewContainer"] > .main {
+        height: 100vh; display:flex; align-items:center; justify-content:center;
+    }
+    .auth-card {
+        width: min(94vw, 420px);
+        background: var(--background-color);
+        border-radius: 18px;
+        padding: 28px 28px 22px;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+        text-align: center; animation: fadeIn .25s ease-out;
+    }
+    @keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
+    </style>
+    """, unsafe_allow_html=True)
 
-    # środkowa karta logowania (bez callbacków)
     st.markdown('<div class="auth-card">', unsafe_allow_html=True)
     st.image("https://img.icons8.com/color/96/brain.png", width=76)
-    st.markdown('<div class="auth-title">🧠 Szacowanie ryzyka cech napadów</div>', unsafe_allow_html=True)
-    st.markdown('<div class="auth-sub">Wpisz kod dostępu, aby kontynuować</div>', unsafe_allow_html=True)
-
-    # używamy formy – submit = naturalny rerender (bez st.rerun)
+    st.markdown("### 🧠 Szacowanie ryzyka cech napadów")
+    st.write("Wpisz kod dostępu, aby kontynuować")
     with st.form("login_form", clear_on_submit=False):
         code = st.text_input("Kod dostępu", type="password", label_visibility="collapsed")
-        submitted = st.form_submit_button("Zaloguj", use_container_width=True)
-
+        ok = st.form_submit_button("Zaloguj", use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    if submitted:
+    if ok:
         if code == ACCESS_CODE:
             st.session_state.auth_ok = True   # kolejny rerender pokaże aplikację
         else:
             st.error("Błędny kod ❌")
 
-    st.stop()  # dopóki nie zalogowany – nic dalej się nie renderuje
-
+    st.stop()
 # ---------------------- ⛔️ Strażnik logowania ----------------------
 if not check_access():
     st.stop()
