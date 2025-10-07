@@ -9,10 +9,46 @@ st.set_page_config(
     page_title="Ryzyko cech napadu (DEMO)",
     page_icon="🧠",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed"  # możemy zostawić collapsed, ale ukrywamy kontrolkę
 )
 
-# ---------------------- ✨ GLOBALNY STYL — BEZ CZERWIENI, BEZ BIAŁEJ "PIGUŁY" ----------------------
+# ---------------------- 🧽 KILLBAR: header/toolbar + "białe jajko" (sidebar toggle) ----------------------
+st.markdown("""
+<style>
+/* 1) Header/toolbar/decoracje/badge/status */
+div[data-testid="stDecoration"],
+header, div[data-testid="stHeader"], div[data-testid="stToolbar"],
+section[data-testid="stDecoration"],
+div[class*="viewerBadge_"], a[data-testid="viewer-badge"],
+div[data-testid="stStatusWidget"], [data-testid="stStatusWidget"],
+[data-testid="stAppStatusWidget"], [data-testid="stAppStatusContainer"],
+header[role="banner"], div[role="banner"] {
+  display: none !important; visibility: hidden !important; opacity: 0 !important;
+  height: 0 !important; width: 0 !important; position: fixed !important; z-index: -9999 !important;
+}
+
+/* 2) *** Kontrolka zwijania sidebaru — "białe jajko" *** */
+div[data-testid="collapsedControl"],
+div[data-testid="stSidebarCollapseButton"],
+button[data-testid="stSidebarCollapseButton"],
+div[aria-label="Show sidebar"],
+div[aria-label="Hide sidebar"] {
+  display: none !important; visibility: hidden !important; opacity: 0 !important;
+  height: 0 !important; width: 0 !important; position: fixed !important; z-index: -9999 !important;
+}
+
+/* 3) Zerowanie górnych paddingów kontenera widoku */
+div[data-testid="stAppViewContainer"] { padding-top:0 !important; margin-top:0 !important; }
+div[data-testid="stAppViewContainer"] > .main { padding-top:0 !important; padding-bottom:0 !important; }
+html, body, [data-testid="stApp"] { margin:0 !important; padding:0 !important; }
+
+/* (opcjonalnie) reset globalnych cieni, by nic nie "przebijało" */
+header:before, header:after,
+div[data-testid="stHeader"]:before, div[data-testid="stHeader"]:after { display:none !important; content:none !important; }
+</style>
+""", unsafe_allow_html=True)
+
+# ---------------------- ✨ GLOBALNY STYL — neutralny UI ----------------------
 st.markdown("""
 <style>
 :root { --radius: 14px; }
@@ -22,13 +58,13 @@ div[data-testid="stAppViewContainer"] .block-container {
 .stAlert { border-radius: var(--radius); }
 .stProgress > div > div > div { border-radius: 999px; }
 
-/* Karta pytania: bez białego tła i bez cienia */
+/* Karta pytania: neutralnie, bez białego tła i bez cienia */
 .q-card {
   border:1px solid rgba(0,0,0,.10);
   border-radius: var(--radius);
   padding: 16px;
-  background: transparent;         /* << usuwa białe tło */
-  box-shadow: none;                /* << usuwa "pigułę" */
+  background: transparent;
+  box-shadow: none;
 }
 .q-title { font-size:1.05rem; font-weight:700; margin:0 0 .25rem 0; }
 
@@ -39,7 +75,7 @@ div[data-testid="stAppViewContainer"] .block-container {
 .badge { display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .7rem;
   border-radius:999px; background:rgba(0,0,0,.06); font-size:.85rem; }
 
-/* Przyciski wyboru – neutralne, wszystkie identyczne (brak czerwieni / primary) */
+/* Przyciski wyboru – neutralne */
 .choice-grid { display:grid; grid-template-columns: 1fr; gap:10px; margin-top:.5rem; }
 @media (min-width:560px){ .choice-grid{ grid-template-columns: repeat(3, 1fr); } }
 .stButton>button {
@@ -47,16 +83,11 @@ div[data-testid="stAppViewContainer"] .block-container {
   font-weight: 700;
   padding: 0.9rem 1rem;
   border: 1px solid rgba(0,0,0,.12);
-  background: rgba(0,0,0,.03);      /* lekko szare tło */
-  color: inherit;                    /* systemowy tekst */
+  background: rgba(0,0,0,.03);
+  color: inherit;
 }
-.stButton>button:hover {
-  background: rgba(0,0,0,.06);
-  border-color: rgba(0,0,0,.16);
-}
-.stButton>button:focus {
-  outline: 2px solid rgba(0,0,0,.18);
-}
+.stButton>button:hover { background: rgba(0,0,0,.06); border-color: rgba(0,0,0,.16); }
+.stButton>button:focus { outline: 2px solid rgba(0,0,0,.18); }
 
 /* Select neutralny (dla pytań typu select) */
 div[data-baseweb="select"] > div {
@@ -67,7 +98,7 @@ div[data-baseweb="select"] > div {
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------- 🔒 LOGOWANIE (Twoje – bez zmian) ----------------------
+# ---------------------- 🔒 LOGOWANIE ----------------------
 def check_access() -> bool:
     ACCESS_CODE = st.secrets.get("ACCESS_CODE") or os.environ.get("ACCESS_CODE")
     if not ACCESS_CODE:
@@ -96,6 +127,7 @@ def check_access() -> bool:
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="auth-card">', unsafe_allow_html=True)
+    # Uwaga: jeśli obrazek ma białe tło, zamień na emoji lub PNG z alpha
     st.image("https://img.icons8.com/color/96/brain.png", width=76)
     st.markdown('<div class="auth-title"> Szacowanie ryzyka cech napadów</div>', unsafe_allow_html=True)
     st.markdown('<div class="auth-sub">Wpisz kod dostępu, aby kontynuować</div>', unsafe_allow_html=True)
