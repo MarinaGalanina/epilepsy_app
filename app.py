@@ -136,6 +136,25 @@ div[data-testid="stStatusWidget"], [data-testid="stAppStatusWidget"],
 /* 2) „White egg” (toggle sidebara) */
 div[data-testid="collapsedControl"] { display: none !important; }
 
+@media (max-width: 768px){
+  div[data-testid="collapsedControl"] {
+    display: flex !important;
+    opacity: 1 !important;
+    right: 12px; top: 12px;
+  }
+  /* neutralny wygląd, bez białej „piguły” */
+  div[data-testid="collapsedControl"] button {
+    background: rgba(0,0,0,.06) !important;
+    border: 1px solid rgba(0,0,0,.15) !important;
+    box-shadow: none !important;
+    color: inherit !important;
+  }
+}
+
+/* helper do ukrywania/pokazywania elementów tylko na mobile */
+.mobile-only { display: none; }
+@media (max-width: 768px){ .mobile-only { display: block; } }
+
 /* 3) Kontener: pełna szerokość, brak twardego max-width */
 div[data-testid="stAppViewContainer"] .block-container {
   padding-top: 12px; padding-bottom: 28px; max-width: 980px;
@@ -296,6 +315,30 @@ def compute_scores(answers: Dict[str, Any], path: Dict[str, Any]):
 # ---------------------- 🧱 NAGŁÓWEK + PROGRES ----------------------
 label_text = [k for k,v in path_labels.items() if v==st.session_state.selected_path_id][0]
 st.header(f"Ścieżka: {label_text}")
+# --- Mobile: wybór ścieżki w treści (fallback gdy sidebar schowany) ---
+labels_list = list(path_labels.keys())
+ids_list = [path_labels[l] for l in labels_list]
+try:
+    current_idx = ids_list.index(st.session_state.selected_path_id)
+except ValueError:
+    current_idx = 0
+
+with st.container():
+    st.markdown('<div class="mobile-only">', unsafe_allow_html=True)
+    mobile_choice = st.selectbox("Typ incydentu", labels_list, index=current_idx, key="mobile_path_sel")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# jeśli zmieniono ścieżkę na mobile – zresetuj stan jak w sidebarze
+if "mobile_path_sel" in st.session_state:
+    new_sel_id = path_labels[st.session_state.mobile_path_sel]
+    if new_sel_id != st.session_state.selected_path_id:
+        st.session_state.selected_path_id = new_sel_id
+        st.session_state.current_q_idx = 0
+        st.session_state.answers = {}
+        st.session_state.finished = False
+        st.session_state.result = None
+        st.rerun()
+
 if nq == 0:
     st.warning("Brak pytań w tej ścieżce.")
 else:
