@@ -47,43 +47,6 @@ div[role="combobox"] {
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<style>
-/* Sekcja centralna na pełną wysokość okna */
-.center-stage {
-  min-height: calc(100vh - 32px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-
-/* Węższa kolumna na środku, żeby nie „pływało” na ultra-szerokich ekranach */
-.center-narrow {
-  width: min(900px, 92vw);
-}
-
-/* Karta pytania – lekko unieś i zrób neutralną ramkę */
-.q-card {
-  border:1px solid rgba(0,0,0,.10);
-  border-radius: 14px;
-  padding: 16px 18px;
-  background: transparent;
-  box-shadow: none;
-}
-.q-title { font-size:1.08rem; font-weight:700; margin:0 0 .35rem 0; }
-
-/* Pasek postępu/kropki */
-.progress-dots { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 6px 0; justify-content:center; }
-.dot { width:10px; height:10px; border-radius:50%; background:rgba(0,0,0,.15); }
-.dot.on { background:rgba(0,0,0,.45); }
-.badge { display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .7rem;
-  border-radius:999px; background:rgba(0,0,0,.06); font-size:.85rem; }
-</style>
-""", unsafe_allow_html=True)
-
-
 # ---------------------- 🔒 LOGOWANIE (Twoje – bez zmian) ----------------------
 def check_access() -> bool:
     ACCESS_CODE = st.secrets.get("ACCESS_CODE") or os.environ.get("ACCESS_CODE")
