@@ -16,24 +16,26 @@ st.set_page_config(
 st.markdown("""
 <style>
 :root { --radius: 16px; }
-div[data-testid="stAppViewContainer"] .block-container { padding-top: 16px; padding-bottom: 28px; }
-.stButton>button, .stDownloadButton>button { border-radius: var(--radius); font-weight: 700; padding: 0.8rem 1rem; }
+div[data-testid="stAppViewContainer"] .block-container { padding-top: 12px; padding-bottom: 28px; max-width: 980px; }
+.stButton>button, .stDownloadButton>button { border-radius: var(--radius); font-weight: 700; padding: 0.9rem 1rem; }
 .stAlert { border-radius: var(--radius); }
 .stProgress > div > div > div { border-radius: 999px; }
-.step-chip { display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .7rem; border-radius:999px; background:rgba(0,0,0,.06); font-size:.85rem; }
-.q-card { border:1px solid rgba(0,0,0,.08); border-radius: var(--radius); padding: 18px; box-shadow: 0 8px 24px rgba(0,0,0,.04); background: var(--background-color); }
-.q-title { font-size:1.05rem; font-weight:700; margin-bottom:.25rem; }
-.q-help { opacity:.8; font-size:.9rem; margin-bottom:.75rem; }
-.btn-grid { display:grid; grid-template-columns: 1fr; gap:10px; }
-@media (min-width: 520px){ .btn-grid{ grid-template-columns: repeat(3, 1fr);} }
-.choice-btn { width:100%; height:58px; border-radius: var(--radius); font-weight:800; }
-.navbar { display:flex; gap:10px; justify-content:space-between; margin-top:8px; }
-.navbar > * { flex: 1; }
-hr { margin: 8px 0 4px 0; }
+.q-card { border:1px solid rgba(0,0,0,.08); border-radius: var(--radius); padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,.05); background: var(--background-color); }
+.q-title { font-size:1.06rem; font-weight:700; margin:0 0 .5rem 0; line-height:1.35; }
+.btn-grid { display:grid; grid-template-columns: 1fr; gap:10px; margin-top:.5rem; }
+@media (min-width: 560px){ .btn-grid{ grid-template-columns: repeat(3, 1fr);} }
+.choice-btn { width:100%; height:64px; border-radius: var(--radius); font-weight:800; }
+.choice-btn span { font-size:1.05rem; }
+.badge { display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .7rem; border-radius:999px; background:rgba(0,0,0,.06); font-size:.85rem; }
+.progress-dots { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 4px 0; }
+.dot { width:10px; height:10px; border-radius:50%; background:rgba(0,0,0,.15); }
+.dot.on { background:rgba(0,0,0,.5); }
+.lock-note { font-size:.9rem; opacity:.8; }
+hr { margin: 10px 0 4px 0; }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------- 🔒 LOGOWANIE (NIE ZMIENIAMY – JAK WYSŁAŁAŚ) ----------------------
+# ---------------------- 🔒 LOGOWANIE (BEZ ZMIAN) ----------------------
 def check_access() -> bool:
     """
     Ekran logowania wyświetlany dokładnie na środku ekranu.
@@ -192,80 +194,73 @@ def compute_scores(answers: Dict[str, Any], path: Dict[str, Any]):
         prob = 1.0 / (1.0 + np.exp(-logit))
     return score, max_score, prob
 
-# ---------------------- 🧱 NAGŁÓWEK ŚCIEŻKI ----------------------
+# ---------------------- 🧱 NAGŁÓWEK + PROGRES ----------------------
 label_text = [k for k,v in path_labels.items() if v==st.session_state.selected_path_id][0]
 st.header(f"Ścieżka: {label_text}")
 if nq == 0:
     st.warning("Brak pytań w tej ścieżce.")
 else:
     q_idx = st.session_state.current_q_idx
-    st.progress(int((q_idx / nq) * 100))
-    st.markdown(f'<span class="step-chip">Pytanie {q_idx + 1} z {nq}</span>', unsafe_allow_html=True)
+    st.progress(int((q_idx / max(nq,1)) * 100))
+    # kropki postępu
+    dots = "".join([f'<span class="dot{" on" if i<q_idx else ""}"></span>' for i in range(nq)])
+    st.markdown(f'<div class="progress-dots" aria-label="postęp pytań">{dots}</div>', unsafe_allow_html=True)
+    st.markdown(f'<span class="badge">Pytanie {q_idx + 1} z {nq}</span>', unsafe_allow_html=True)
 
-# ---------------------- 🗳️ NOWOCZESNY, DOTYKOWY WYBÓR ----------------------
-def _render_choice_buttons(options: List[str], qid: str):
-    # Siatka 3 przycisków – pełna szerokość na mobile, 3 kolumny na desktopie
-    st.markdown('<div class="btn-grid">', unsafe_allow_html=True)
-    cols = st.columns(3) if len(options) == 3 else st.columns(len(options))
-    clicked_val = None
-    for i, opt in enumerate(options):
-        with cols[i]:
-            if st.button(opt.capitalize(), key=f"btn_{qid}_{opt}", use_container_width=True, type="primary" if opt=="tak" else "secondary"):
-                clicked_val = opt
-    st.markdown('</div>', unsafe_allow_html=True)
-    return clicked_val
+# ---------------------- 🗳️ PRZYCISKI WYBORU (auto-advance) ----------------------
+def choice_row(qid: str, label: str, value: str, primary=False):
+    return st.button(
+        label,
+        key=f"btn_{qid}_{value}",
+        use_container_width=True,
+        type="primary" if primary else "secondary",
+        help=None
+    )
 
-# ---------------------- 🎛️ PRZEPŁYW – JEDNO PYTANIE NA EKRANIE ----------------------
+def tri_buttons(qid: str):
+    cols = st.columns(3)
+    clicked = None
+    with cols[0]:
+        if choice_row(qid, "❌ Nie", "nie"): clicked = "nie"
+    with cols[1]:
+        if choice_row(qid, "✅ Tak", "tak", primary=True): clicked = "tak"
+    with cols[2]:
+        if choice_row(qid, "❔ Nie wiem", "nie_wiem"): clicked = "nie wiem"
+    return clicked
+
+# ---------------------- 🎛️ JEDNO PYTANIE NA EKRANIE — BEZ POWROTU ----------------------
 if not st.session_state.finished and nq > 0:
-    q = questions[q_idx]
-    with st.container():
-        st.markdown('<div class="q-card">', unsafe_allow_html=True)
-        st.markdown(f'<div class="q-title">{q["text"]}</div>', unsafe_allow_html=True)
+    q = questions[st.session_state.current_q_idx]
+    st.markdown('<div class="q-card">', unsafe_allow_html=True)
+    st.markdown(f'<div class="q-title">{q["text"]}</div>', unsafe_allow_html=True)
 
-        answer_clicked = None
-        if q["type"] == "tri":
-            # nowoczesny wybór: duże przyciski
-            answer_clicked = _render_choice_buttons(["nie", "tak", "nie wiem"], q["id"])
-        elif q["type"] == "select":
-            # select – też nowocześnie, pełna szerokość
-            labels = [opt["label"] for opt in q.get("options", [])]
-            val = st.selectbox("",
-                               ["-- wybierz --"] + labels,
-                               index=0,
-                               key=f"sel_{q['id']}")
-            if val != "-- wybierz --":
-                answer_clicked = val
+    answer_clicked = None
+    if q["type"] == "tri":
+        answer_clicked = tri_buttons(q["id"])
+    elif q["type"] == "select":
+        labels = [opt["label"] for opt in q.get("options", [])]
+        # wybór – natychmiastowe przejście dalej po wyborze
+        val = st.selectbox("", ["-- wybierz --"] + labels, index=0, key=f"sel_{q['id']}")
+        if val != "-- wybierz --":
+            answer_clicked = val
 
-        # Nawigacja – wróć (tylko przed zakończeniem)
-        st.markdown('<div class="navbar">', unsafe_allow_html=True)
-        prev_col, next_col = st.columns(2)
-        with prev_col:
-            if st.button("◀ Poprzednie", use_container_width=True, disabled=(q_idx == 0)):
-                st.session_state.current_q_idx -= 1
-                st.rerun()
-        with next_col:
-            # „Dalej” aktywne tylko jeśli mamy odpowiedź (dla select) – dla tri niepotrzebne, bo klik przenosi od razu
-            need_next = (q["type"] == "select")
-            st.button("Dalej ▶", use_container_width=True, disabled=need_next and (answer_clicked is None), key="next_btn_dummy")
-        st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # logika: kliknięcie odpowiedzi zapisuje i przechodzi dalej
+    # AUTO-ADVANCE & LOCK-IN
     if answer_clicked is not None:
         st.session_state.answers[q["id"]] = answer_clicked
-        if q_idx + 1 >= nq:
+        if st.session_state.current_q_idx + 1 >= nq:
             score, max_score, prob = compute_scores(st.session_state.answers, path)
             st.session_state.result = {"score": score, "max_score": max_score, "prob": prob}
-            st.session_state.finished = True  # 🔒 blokada edycji po zakończeniu
+            st.session_state.finished = True     # 🔒 zakmnięcie edycji
             st.rerun()
         else:
-            st.session_state.current_q_idx += 1
+            st.session_state.current_q_idx += 1   # ➡️ następne pytanie
             st.rerun()
 
 st.divider()
 
-# ---------------------- 📊 WYNIK – BEZ MOŻLIWOŚCI EDYCJI ----------------------
+# ---------------------- 📊 WYNIK – READ-ONLY ----------------------
 if st.session_state.finished and st.session_state.result:
     res = st.session_state.result
     score, max_score, prob = res["score"], res["max_score"], res["prob"]
@@ -279,12 +274,11 @@ if st.session_state.finished and st.session_state.result:
         level = "niskie" if prob < 0.3 else ("umiarkowane" if prob < 0.7 else "wysokie")
         st.metric("Poziom", level)
 
-    # Podsumowanie (read-only) + eksport JSON
     with st.expander("Zobacz podsumowanie (read-only)"):
         pretty = {
             "path_label": label_text,
             "version": survey["meta"].get("version", "unknown"),
-            "responses": st.session_state.answers,  # tylko do wglądu
+            "responses": st.session_state.answers,
             "score": score,
             "max_score": max_score,
             "probability": prob
@@ -298,8 +292,8 @@ if st.session_state.finished and st.session_state.result:
         )
 
     st.info("To narzędzie ma charakter edukacyjny i nie zastępuje porady lekarskiej.", icon="ℹ️")
+    st.caption('<span class="lock-note">Odpowiedzi są zablokowane. Aby wypełnić ponownie, uruchom nowy przebieg.</span>', unsafe_allow_html=True)
 
-    # Tylko restart – brak edycji odpowiedzi po zakończeniu
     if st.button("🔁 Zacznij od nowa"):
         st.session_state.current_q_idx = 0
         st.session_state.answers = {}
