@@ -11,27 +11,25 @@ st.set_page_config(
     initial_sidebar_state="collapsed"  # ukryj sidebar do czasu logowania
 )
 # 🔧 Usuń dekoracje i górne odstępy UI Streamlita (żeby nic nie „wystawało” nad loginem)
+
 st.markdown("""
 <style>
-/* 1) schowaj wszystkie „ozdoby” nagłówka */
-div[data-testid="stDecoration"] { display: none !important; }   /* biała pigułka */
-div[data-testid="stHeader"]     { display: none !important; }   /* pasek nagłówka */
-div[data-testid="stToolbar"]    { display: none !important; }   /* toolbar */
+/* dekoracyjna pigułka u góry */
+div[data-testid="stDecoration"],
+header [data-testid="stDecoration"],
+section[data-testid="stDecoration"] { display:none !important; }
 
-/* (fallback dla starszych motywów) */
-#MainMenu {visibility: hidden;}
-header    {visibility: hidden;}
-footer    {visibility: hidden;}
+/* cały header/toolbar */
+div[data-testid="stHeader"], header, div[data-testid="stToolbar"] { display:none !important; }
 
-/* 2) wyzeruj padding/marginesy głównego kontenera aplikacji */
-div[data-testid="stAppViewContainer"] { padding-top: 0 !important; margin-top: 0 !important; }
-div[data-testid="stAppViewContainer"] > .main {
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-}
+/* viewer badge / share / deploy (różne wersje) */
+div[class*="viewerBadge_"], a[data-testid="viewer-badge"], 
+button[kind="header"], div[data-testid="stStatusWidget"] { display:none !important; }
 
-/* 3) dla starego selektora .block-container (niektóre wersje) */
-.block-container { padding-top: 0 !important; }
+/* wyzeruj górne odstępy kontenera aplikacji */
+div[data-testid="stAppViewContainer"] { padding-top:0 !important; margin-top:0 !important; }
+div[data-testid="stAppViewContainer"] > .main { padding-top:0 !important; padding-bottom:0 !important; }
+.block-container { padding-top:0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
