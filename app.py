@@ -10,54 +10,59 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"  # ukryj sidebar do czasu logowania
 )
-
+# 🔧 Usuń dekoracje i górne odstępy UI Streamlita (żeby nic nie „wystawało” nad loginem)
 st.markdown("""
 <style>
-/* schowaj nagłówek i toolbar Streamlita */
-div[data-testid="stDecoration"] { display: none !important; }   /* biała "pigułka" u góry */
+/* 1) schowaj wszystkie „ozdoby” nagłówka */
+div[data-testid="stDecoration"] { display: none !important; }   /* biała pigułka */
 div[data-testid="stHeader"]     { display: none !important; }   /* pasek nagłówka */
-div[data-testid="stToolbar"]    { display: none !important; }   /* toolbar w trybie dev */
+div[data-testid="stToolbar"]    { display: none !important; }   /* toolbar */
 
-/* wyzeruj górne marginesy/paddingi kontenera */
+/* (fallback dla starszych motywów) */
+#MainMenu {visibility: hidden;}
+header    {visibility: hidden;}
+footer    {visibility: hidden;}
+
+/* 2) wyzeruj padding/marginesy głównego kontenera aplikacji */
+div[data-testid="stAppViewContainer"] { padding-top: 0 !important; margin-top: 0 !important; }
 div[data-testid="stAppViewContainer"] > .main {
   padding-top: 0 !important;
   padding-bottom: 0 !important;
 }
 
-/* dla starego selektora (zgodność) */
-.main .block-container {
-  padding-top: 0 !important;
-}
-
-/* opcjonalnie: schowaj „Share/GitHub” w prawym górnym rogu podglądu */
-button[kind="header"] { display: none !important; }
+/* 3) dla starego selektora .block-container (niektóre wersje) */
+.block-container { padding-top: 0 !important; }
 </style>
 """, unsafe_allow_html=True)
-
 
 # ---------------------- 🔒 LOGOWANIE (center + bez st.rerun) ----------------------
 def check_access() -> bool:
     ACCESS_CODE = st.secrets.get("ACCESS_CODE") or os.environ.get("ACCESS_CODE")
-    if not ACCESS_CODE: st.error("Brak ACCESS_CODE w Secrets/ENV."); st.stop()
+    if not ACCESS_CODE:
+        st.error("Brak ustawionego ACCESS_CODE w Secrets/ENV."); st.stop()
 
-    if st.session_state.get("auth_ok", False):  # już zalogowany
+    if st.session_state.get("auth_ok", False):
         return True
 
-    # centrowanie właściwe
+    # Dokładne centrowanie karty logowania
     st.markdown("""
     <style>
-    div[data-testid="stAppViewContainer"] > .main {
-        height: 100vh; display:flex; align-items:center; justify-content:center;
-    }
-    .auth-card {
+      div[data-testid="stAppViewContainer"] > .main {
+        height: 100vh;                   /* pełny viewport */
+        display: flex;
+        align-items: center;             /* pion */
+        justify-content: center;         /* poziom */
+      }
+      .auth-card{
         width: min(94vw, 420px);
         background: var(--background-color);
         border-radius: 18px;
         padding: 28px 28px 22px;
-        box-shadow: 0 12px 30px rgba(0,0,0,0.08);
-        text-align: center; animation: fadeIn .25s ease-out;
-    }
-    @keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
+        box-shadow: 0 12px 30px rgba(0,0,0,.08);
+        text-align:center;
+        animation: fadeIn .25s ease-out;
+      }
+      @keyframes fadeIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
     </style>
     """, unsafe_allow_html=True)
 
@@ -72,11 +77,13 @@ def check_access() -> bool:
 
     if ok:
         if code == ACCESS_CODE:
-            st.session_state.auth_ok = True   # kolejny rerender pokaże aplikację
+            st.session_state.auth_ok = True   # kolejny render pokaże appkę
         else:
             st.error("Błędny kod ❌")
 
     st.stop()
+
+
 # ---------------------- ⛔️ Strażnik logowania ----------------------
 if not check_access():
     st.stop()
