@@ -15,54 +15,34 @@ st.set_page_config(
 # ---------------------- ✨ GLOBALNY STYL — BEZ CZERWIENI, BEZ BIAŁEJ "PIGUŁY" ----------------------
 st.markdown("""
 <style>
-:root { --radius: 14px; }
+/* 1) Header/toolbar/status/badges */
+div[data-testid="stDecoration"],
+header, div[data-testid="stHeader"], div[data-testid="stToolbar"],
+div[class*="viewerBadge_"], a[data-testid="viewer-badge"],
+div[data-testid="stStatusWidget"], [data-testid="stAppStatusWidget"],
+[data-testid="stAppStatusContainer"], header[role="banner"], div[role="banner"] {
+  display: none !important; visibility: hidden !important;
+}
+
+/* 2) „White egg” (toggle sidebara) */
+div[data-testid="collapsedControl"] { display: none !important; }
+
+/* 3) Kontener: pełna szerokość, brak twardego max-width */
 div[data-testid="stAppViewContainer"] .block-container {
   padding-top: 12px; padding-bottom: 28px; max-width: 980px;
 }
-.stAlert { border-radius: var(--radius); }
-.stProgress > div > div > div { border-radius: 999px; }
 
-/* Karta pytania: bez białego tła i bez cienia */
-.q-card {
-  border:1px solid rgba(0,0,0,.10);
-  border-radius: var(--radius);
-  padding: 16px;
-  background: transparent;         /* << usuwa białe tło */
-  box-shadow: none;                /* << usuwa "pigułę" */
-}
-.q-title { font-size:1.05rem; font-weight:700; margin:0 0 .25rem 0; }
-
-/* Dots i badge */
-.progress-dots { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 6px 0; }
-.dot { width:10px; height:10px; border-radius:50%; background:rgba(0,0,0,.15); }
-.dot.on { background:rgba(0,0,0,.45); }
-.badge { display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .7rem;
-  border-radius:999px; background:rgba(0,0,0,.06); font-size:.85rem; }
-
-/* Przyciski wyboru – neutralne, wszystkie identyczne (brak czerwieni / primary) */
-.choice-grid { display:grid; grid-template-columns: 1fr; gap:10px; margin-top:.5rem; }
-@media (min-width:560px){ .choice-grid{ grid-template-columns: repeat(3, 1fr); } }
-.stButton>button {
-  border-radius: var(--radius);
-  font-weight: 700;
-  padding: 0.9rem 1rem;
-  border: 1px solid rgba(0,0,0,.12);
-  background: rgba(0,0,0,.03);      /* lekko szare tło */
-  color: inherit;                    /* systemowy tekst */
-}
-.stButton>button:hover {
-  background: rgba(0,0,0,.06);
-  border-color: rgba(0,0,0,.16);
-}
-.stButton>button:focus {
-  outline: 2px solid rgba(0,0,0,.18);
+/* 4) Selectbox – pewne targetowanie (różne wersje Streamlit) */
+div[role="combobox"] {
+  border-radius: 14px !important;
+  border: 1px solid rgba(0,0,0,.12) !important;
+  background: rgba(0,0,0,.02) !important;
 }
 
-/* Select neutralny (dla pytań typu select) */
-div[data-baseweb="select"] > div {
-  border-radius: var(--radius);
-  border-color: rgba(0,0,0,.12);
-  background: rgba(0,0,0,.02);
+/* 5) Przyciski – focus bardziej dostępny */
+.stButton>button:focus-visible {
+  outline: 3px solid rgba(0,0,0,.35) !important;
+  outline-offset: 2px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -121,6 +101,7 @@ if not check_access():
 st.sidebar.success("Zalogowano")
 if st.sidebar.button("Wyloguj"):
     st.session_state.auth_ok = False
+    st.rerun()
 
 # ---------------------- 🧠 Tytuł i disclaimer ----------------------
 st.title("🧠 Szacowanie ryzyka cech napadów – DEMO")
@@ -211,7 +192,7 @@ if nq == 0:
 else:
     q_idx = st.session_state.current_q_idx
     st.progress(int((q_idx / max(nq,1)) * 100))
-    dots = "".join([f'<span class="dot{" on" if i<q_idx else ""}"></span>' for i in range(nq)])
+    dots = "".join([f'<span class="dot{" on" if i<=q_idx else ""}"></span>' for i in range(nq)])
     st.markdown(f'<div class="progress-dots" aria-label="postęp pytań">{dots}</div>', unsafe_allow_html=True)
     st.markdown(f'<span class="badge">Pytanie {q_idx + 1} z {nq}</span>', unsafe_allow_html=True)
 
@@ -278,7 +259,7 @@ if st.session_state.finished and st.session_state.result:
     with st.expander("Zobacz podsumowanie (read-only)"):
         pretty = {
             "path_label": label_text,
-            "version": survey["meta"].get("version", "unknown"),
+            "version": survey.get("meta", {}).get("version", "unknown"),
             "responses": st.session_state.answers,
             "score": score, "max_score": max_score, "probability": prob
         }
@@ -297,4 +278,4 @@ if st.session_state.finished and st.session_state.result:
         st.session_state.result = None
         st.rerun()
 
-st.caption("Wersja: " + survey["meta"].get("version", "unknown"))
+st.caption("Wersja: " + survey.get("meta", {}).get("version", "unknown"))
