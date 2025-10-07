@@ -253,7 +253,7 @@ if st.session_state.finished and st.session_state.result:
         st.write("**Suma punktów**")
         st.write(f"{score:.1f} / {max_score:.1f}")
     with c3:
-        level = "niskie" if prob < 0.3 else ("umiarkowane" if prob < 0.7 else "wysokie")
+        level = "niskie" if prob < 0.3 else ("umiarkowane" if prob < 0.6 else "wysokie")
         st.metric("Poziom", level)
 
     with st.expander("Zobacz podsumowanie (read-only)"):
