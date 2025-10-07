@@ -10,26 +10,27 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"  # ukryj sidebar do czasu logowania
 )
-# 🔧 Usuń dekoracje i górne odstępy UI Streamlita (żeby nic nie „wystawało” nad loginem)
 
+# 🔧 Usuń dekoracje i górne odstępy UI Streamlita (żeby nic nie „wystawało” nad loginem)
 st.markdown("""
 <style>
-/* dekoracyjna pigułka u góry */
+/* dekoracyjna pigułka / header / toolbar / badge */
 div[data-testid="stDecoration"],
 header [data-testid="stDecoration"],
-section[data-testid="stDecoration"] { display:none !important; }
-
-/* cały header/toolbar */
-div[data-testid="stHeader"], header, div[data-testid="stToolbar"] { display:none !important; }
-
-/* viewer badge / share / deploy (różne wersje) */
-div[class*="viewerBadge_"], a[data-testid="viewer-badge"], 
+section[data-testid="stDecoration"],
+div[data-testid="stHeader"], header, div[data-testid="stToolbar"],
+div[class*="viewerBadge_"], a[data-testid="viewer-badge"],
 button[kind="header"], div[data-testid="stStatusWidget"] { display:none !important; }
 
 /* wyzeruj górne odstępy kontenera aplikacji */
 div[data-testid="stAppViewContainer"] { padding-top:0 !important; margin-top:0 !important; }
 div[data-testid="stAppViewContainer"] > .main { padding-top:0 !important; padding-bottom:0 !important; }
 .block-container { padding-top:0 !important; }
+
+/* jednolite tło, żeby nic nie „przebijało” */
+html, body, [data-testid="stAppViewContainer"] {
+  background: var(--background-color, #ffffff) !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -53,7 +54,7 @@ def check_access() -> bool:
       }
       .auth-card{
         width: min(94vw, 420px);
-        background: var(--background-color);
+        background: var(--background-color, #ffffff);
         border-radius: 18px;
         padding: 28px 28px 22px;
         box-shadow: 0 12px 30px rgba(0,0,0,.08);
@@ -61,12 +62,17 @@ def check_access() -> bool:
         animation: fadeIn .25s ease-out;
       }
       @keyframes fadeIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+      .auth-emoji{
+        font-size: 56px; line-height: 1; margin-bottom: 6px;
+        user-select:none;
+      }
     </style>
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="auth-card">', unsafe_allow_html=True)
-    st.image("https://img.icons8.com/color/96/brain.png", width=76)
-    st.markdown("### 🧠 Szacowanie ryzyka cech napadów")
+    # 👉 ZAMIANA obrazka z białym tłem na czyste emoji (brak „białego jajka”)
+    st.markdown('<div class="auth-emoji">🧠</div>', unsafe_allow_html=True)
+    st.markdown("### Szacowanie ryzyka cech napadów")
     st.write("Wpisz kod dostępu, aby kontynuować")
     with st.form("login_form", clear_on_submit=False):
         code = st.text_input("Kod dostępu", type="password", label_visibility="collapsed")
