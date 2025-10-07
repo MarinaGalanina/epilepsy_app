@@ -73,136 +73,81 @@ paths = {p["id"]: p for p in survey["paths"]}
 path_labels = {p["label"]: p["id"] for p in survey["paths"]}
 
 
-# ---------------------- 🧩 INTERFEJS (WIZARD) ----------------------
+# ---------------------- 🧩 INTERFEJS ----------------------
 
-st.set_page_config(page_title="Ryzyko cech napadu (DEMO)", page_icon="🧠", layout="wide")  # szerzej
-
-# init session state
-if "answers" not in st.session_state:
-    st.session_state.answers = {}
-if "step" not in st.session_state:
-    st.session_state.step = 0
-if "current_path" not in st.session_state:
-    st.session_state.current_path = None
-
-# wybór ścieżki jako „pigułki” (poziomo, w main – lepsza ergonomia)
-st.markdown("### Wybór ścieżki (typ incydentu)")
-labels = list(path_labels.keys())
-cols = st.columns(len(labels))
-clicked = None
-for i, lbl in enumerate(labels):
-    with cols[i]:
-        if st.button(lbl, use_container_width=True):
-            clicked = lbl
-
-# ustaw aktualną ścieżkę przy pierwszym wyborze lub kliknięciu
-if st.session_state.current_path is None:
-    st.session_state.current_path = labels[0]
-if clicked:
-    st.session_state.current_path = clicked
-    st.session_state.step = 0  # reset kroków
-
-path_id = path_labels[st.session_state.current_path]
+st.sidebar.header("Wybór ścieżki (typ incydentu)")
+chosen_label = st.sidebar.radio("Typ incydentu:", list(path_labels.keys()))
+path_id = path_labels[chosen_label]
 path = paths[path_id]
-questions = path["questions"]
-n = len(questions)
 
-st.markdown(f"#### Ścieżka: {st.session_state.current_path}")
-st.progress((st.session_state.step+1)/n, text=f"Krok {st.session_state.step+1} z {n}")
+st.header(f"Ścieżka: {chosen_label}")
+st.write("Odpowiedz na poniższe pytania. Jeśli nie jesteś pewna/pewien, wybierz „nie wiem”.")
 
-# przygotuj słownik odpowiedzi dla tej ścieżki
-st.session_state.answers.setdefault(path_id, {})
 
-# RENDER 1 PYTANIE
-q = questions[st.session_state.step]
-qid = q["id"]
-label = q["text"]
+# ---------------------- 🔢 OBLICZANIE WYNIKU ----------------------
 
-# pokaż kompaktowo w formularzu (mniej migotania UI)
-with st.form(f"qform_{qid}", clear_on_submit=False):
-    if q["type"] == "tri":
-        default = st.session_state.answers[path_id].get(qid, "nie")
-        ans = st.selectbox(label, ["nie", "tak", "nie wiem"], index=["nie","tak","nie wiem"].index(default))
-    elif q["type"] == "select":
-        options = [opt["label"] for opt in q["options"]]
-        default = st.session_state.answers[path_id].get(qid, options[0])
-        ans = st.selectbox(label, options, index=options.index(default))
-    else:
-        ans = st.text_input(label, value=st.session_state.answers[path_id].get(qid, ""))
+responses = {}
+max_score = 0.0
+score = 0.0
 
-    nav_col1, nav_col2, nav_col3 = st.columns([1,1,2])
-    with nav_col1:
-        back = st.form_submit_button("⬅ Wstecz", disabled=st.session_state.step == 0)
-    with nav_col2:
-        next_ = st.form_submit_button("Dalej ➡")
-    with nav_col3:
-        finish = st.form_submit_button("✅ Zakończ i oblicz", disabled=st.session_state.step != n-1)
+def tri_widget(key, label):
+    return st.selectbox(label, ["nie", "tak", "nie wiem"], key=key)
 
-# zapisz odpowiedź bieżącego pytania
-st.session_state.answers[path_id][qid] = ans
+def handle_question(q):
+    global max_score, score
+    qtype = q["type"]
+    if qtype == "tri":
+        ans = tri_widget(q["id"], q["text"])
+        responses[q["id"]] = ans
+        max_score += float(q.get("weight_yes", 0))
+        if ans == "tak":
+            score += float(q.get("weight_yes", 0))
+        elif ans == "nie wiem":
+            score += float(q.get("weight_maybe", 0))
 
-# nawigacja
-if back:
-    st.session_state.step = max(0, st.session_state.step - 1)
-    st.experimental_rerun()
-elif next_:
-    st.session_state.step = min(n-1, st.session_state.step + 1)
-    st.experimental_rerun()
+    elif qtype == "select":
+        labels = [opt["label"] for opt in q["options"]]
+        ans = st.selectbox(q["text"], labels, key=q["id"])
+        responses[q["id"]] = ans
+        opt_weights = [float(opt.get("weight", 0)) for opt in q["options"]]
+        max_score += max(opt_weights) if opt_weights else 0.0
+        for opt in q["options"]:
+            if opt["label"] == ans:
+                score += float(opt.get("weight", 0))
+                break
 
-# ---------------------- 🔢 OBLICZANIE WYNIKU PO ZAKOŃCZENIU ----------------------
 
-def compute_score(path_obj, answers_dict):
-    score = 0.0
-    max_score = 0.0
-    for qq in path_obj["questions"]:
-        qid = qq["id"]
-        if qq["type"] == "tri":
-            max_score += float(qq.get("weight_yes", 0))
-            v = answers_dict.get(qid)
-            if v == "tak":
-                score += float(qq.get("weight_yes", 0))
-            elif v == "nie wiem":
-                score += float(qq.get("weight_maybe", 0))
-        elif qq["type"] == "select":
-            opt_weights = [float(opt.get("weight", 0)) for opt in qq.get("options", [])]
-            max_score += max(opt_weights) if opt_weights else 0.0
-            chosen = answers_dict.get(qid)
-            for opt in qq.get("options", []):
-                if opt["label"] == chosen:
-                    score += float(opt.get("weight", 0))
-                    break
-    if max_score == 0:
-        return 0.0, 0.0, 0.0
+for q in path["questions"]:
+    handle_question(q)
+
+st.divider()
+
+# ---------------------- 📊 WYNIK ----------------------
+
+if max_score == 0:
+    prob = 0.0
+else:
     ratio = score / max_score
-    import numpy as np
     logit = (ratio - 0.5) * 6.0
     prob = 1.0 / (1.0 + np.exp(-logit))
-    return prob, score, max_score
 
-if finish:
-    prob, score, max_score = compute_score(path, st.session_state.answers[path_id])
+st.subheader("Wynik (DEMO)")
+col1, col2, col3 = st.columns(3)
 
-    st.divider()
-    st.subheader("Wynik (DEMO)")
-    c1, c2, c3, c4 = st.columns([1,1,1,2])
+with col1:
+    st.metric("Szacowane ryzyko", f"{prob * 100:.0f}%")
 
-    with c1:
-        st.metric("Szacowane ryzyko", f"{prob*100:.0f}%")
-    with c2:
-        st.write("**Suma punktów**")
-        st.write(f"{score:.1f} / {max_score:.1f}")
-    with c3:
-        if prob < 0.3: level = "niskie"
-        elif prob < 0.7: level = "umiarkowane"
-        else: level = "wysokie"
-        st.metric("Poziom", level)
-    with c4:
-        if st.button("🔁 Wypełnij ponownie", use_container_width=True):
-            st.session_state.step = 0
-            st.session_state.answers[path_id] = {}
-            st.experimental_rerun()
+with col2:
+    st.write("**Suma punktów**")
+    st.write(f"{score:.1f} / {max_score:.1f}")
 
-    with st.expander("Podgląd odpowiedzi (debug)"):
-        st.json(st.session_state.answers[path_id])
+with col3:
+    if prob < 0.3:
+        level = "niskie"
+    elif prob < 0.7:
+        level = "umiarkowane"
+    else:
+        level = "wysokie"
+    st.metric("Poziom", level)
 
 st.caption("Wersja: " + survey["meta"]["version"])
