@@ -8,57 +8,33 @@ st.set_page_config(
     page_title="Ryzyko cech napadu (DEMO)",
     page_icon="🧠",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed"  # ukryj sidebar do czasu logowania
 )
 
-# ---------------------- 🔧 CAŁKOWITE USUNIĘCIE GÓRY UI ----------------------
+# 🔧 Usuń dekoracje i górne odstępy UI Streamlita (żeby nic nie „wystawało” nad loginem)
 st.markdown("""
 <style>
-/* usuń absolutnie wszystko nad aplikacją */
+/* dekoracyjna pigułka / header / toolbar / badge */
 div[data-testid="stDecoration"],
-header, div[data-testid="stHeader"], div[data-testid="stToolbar"],
+header [data-testid="stDecoration"],
 section[data-testid="stDecoration"],
-div[class*="viewerBadge_"],
-a[data-testid="viewer-badge"],
-button[kind="header"],
-div[data-testid="stStatusWidget"],
-[data-testid="stStatusWidget"],
-[data-testid="stAppStatusWidget"],
-[data-testid="stAppStatusContainer"] {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    height: 0 !important;
-    width: 0 !important;
-    position: fixed !important;
-    z-index: -9999 !important;
-}
+div[data-testid="stHeader"], header, div[data-testid="stToolbar"],
+div[class*="viewerBadge_"], a[data-testid="viewer-badge"],
+button[kind="header"], div[data-testid="stStatusWidget"] { display:none !important; }
 
-/* usuń wszystkie marginesy i paddingi */
-html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"] {
-    margin: 0 !important;
-    padding: 0 !important;
-    background: white !important;
-    overflow-x: hidden !important;
-}
+/* wyzeruj górne odstępy kontenera aplikacji */
+div[data-testid="stAppViewContainer"] { padding-top:0 !important; margin-top:0 !important; }
+div[data-testid="stAppViewContainer"] > .main { padding-top:0 !important; padding-bottom:0 !important; }
+.block-container { padding-top:0 !important; }
 
-/* zero paddingu u góry */
-div[data-testid="stAppViewContainer"] > .main {
-    padding-top: 0 !important;
-    margin-top: 0 !important;
-    padding-bottom: 0 !important;
-}
-
-/* usuń "białe jajko" – cień root-headera Streamlit */
-header:before, header:after, div[data-testid="stHeader"]:before,
-div[data-testid="stHeader"]:after {
-    display: none !important;
-    content: none !important;
+/* jednolite tło, żeby nic nie „przebijało” */
+html, body, [data-testid="stAppViewContainer"] {
+  background: var(--background-color, #ffffff) !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------- 🔒 LOGOWANIE ----------------------
+# ---------------------- 🔒 LOGOWANIE (center + bez st.rerun) ----------------------
 def check_access() -> bool:
     ACCESS_CODE = st.secrets.get("ACCESS_CODE") or os.environ.get("ACCESS_CODE")
     if not ACCESS_CODE:
@@ -67,38 +43,34 @@ def check_access() -> bool:
     if st.session_state.get("auth_ok", False):
         return True
 
-    # Karta logowania – idealnie wyśrodkowana
+    # Dokładne centrowanie karty logowania
     st.markdown("""
     <style>
       div[data-testid="stAppViewContainer"] > .main {
-        height: 100vh;
+        height: 100vh;                   /* pełny viewport */
         display: flex;
-        align-items: center;
-        justify-content: center;
+        align-items: center;             /* pion */
+        justify-content: center;         /* poziom */
       }
-      .auth-card {
+      .auth-card{
         width: min(94vw, 420px);
-        background: #ffffff;
+        background: var(--background-color, #ffffff);
         border-radius: 18px;
         padding: 28px 28px 22px;
         box-shadow: 0 12px 30px rgba(0,0,0,.08);
-        text-align: center;
+        text-align:center;
         animation: fadeIn .25s ease-out;
       }
-      @keyframes fadeIn {
-        from {opacity:0; transform:translateY(6px);}
-        to {opacity:1; transform:translateY(0);}
-      }
-      .auth-emoji {
-        font-size: 58px;
-        line-height: 1;
-        margin-bottom: 8px;
-        user-select: none;
+      @keyframes fadeIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+      .auth-emoji{
+        font-size: 56px; line-height: 1; margin-bottom: 6px;
+        user-select:none;
       }
     </style>
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="auth-card">', unsafe_allow_html=True)
+    # 👉 ZAMIANA obrazka z białym tłem na czyste emoji (brak „białego jajka”)
     st.markdown('<div class="auth-emoji">🧠</div>', unsafe_allow_html=True)
     st.markdown("### Szacowanie ryzyka cech napadów")
     st.write("Wpisz kod dostępu, aby kontynuować")
@@ -109,14 +81,14 @@ def check_access() -> bool:
 
     if ok:
         if code == ACCESS_CODE:
-            st.session_state.auth_ok = True
+            st.session_state.auth_ok = True   # kolejny render pokaże appkę
         else:
             st.error("Błędny kod ❌")
 
     st.stop()
 
 
-# ---------------------- ⛔️ STRAŻNIK LOGOWANIA ----------------------
+# ---------------------- ⛔️ Strażnik logowania ----------------------
 if not check_access():
     st.stop()
 
@@ -124,11 +96,12 @@ st.sidebar.success("Zalogowano ✅")
 if st.sidebar.button("Wyloguj"):
     st.session_state.auth_ok = False
 
-# ---------------------- 🧠 GŁÓWNA CZĘŚĆ ----------------------
+# ---------------------- 🧠 GŁÓWNA CZĘŚĆ APLIKACJI ----------------------
 st.title("🧠 Szacowanie ryzyka cech napadów – DEMO")
 st.caption("Narzędzie edukacyjne. Nie służy do diagnozy. "
            "W razie niepokojących objawów skontaktuj się z lekarzem lub dzwoń na 112.")
 
+# ---------------------- 📄 WCZYTANIE ANKIETY ----------------------
 @st.cache_data
 def load_survey(path: str):
     with open(path, "r", encoding="utf-8") as f:
@@ -138,6 +111,7 @@ survey = load_survey("survey.json")
 paths = {p["id"]: p for p in survey["paths"]}
 path_labels = {p["label"]: p["id"] for p in survey["paths"]}
 
+# ---------------------- 🧩 INTERFEJS ----------------------
 st.sidebar.header("Wybór ścieżki (typ incydentu)")
 chosen_label = st.sidebar.radio("Typ incydentu:", list(path_labels.keys()))
 path_id = path_labels[chosen_label]
@@ -146,6 +120,7 @@ path = paths[path_id]
 st.header(f"Ścieżka: {chosen_label}")
 st.write("Odpowiedz na poniższe pytania. Jeśli nie jesteś pewna/pewien, wybierz „nie wiem”.")
 
+# ---------------------- 🔢 OBLICZANIE WYNIKU ----------------------
 responses = {}
 max_score = 0.0
 score = 0.0
@@ -180,6 +155,7 @@ for q in path["questions"]:
 
 st.divider()
 
+# ---------------------- 📊 WYNIK ----------------------
 if max_score == 0:
     prob = 0.0
 else:
