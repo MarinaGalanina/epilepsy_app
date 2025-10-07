@@ -61,7 +61,7 @@ def check_access() -> bool:
     # środkowa karta logowania (bez callbacków)
     st.markdown('<div class="auth-card">', unsafe_allow_html=True)
     st.image("https://img.icons8.com/color/96/brain.png", width=76)
-    st.markdown('<div class="auth-title">🧠 Szacowanie ryzyka cech napadów</div>', unsafe_allow_html=True)
+    st.markdown('<div class="auth-title"> Szacowanie ryzyka cech napadów</div>', unsafe_allow_html=True)
     st.markdown('<div class="auth-sub">Wpisz kod dostępu, aby kontynuować</div>', unsafe_allow_html=True)
 
     # używamy formy – submit = naturalny rerender (bez st.rerun)
