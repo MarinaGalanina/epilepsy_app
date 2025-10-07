@@ -1,0 +1,322 @@
+{
+  "meta": {
+    "title": "Szacowanie ryzyka cech napadów (DEMO)",
+    "version": "0.1.0",
+    "disclaimer": "Narzędzie edukacyjne. Nie służy do diagnozy. W razie niepokojących objawów skontaktuj się z lekarzem lub dzwoń na 112."
+  },
+  "paths": [
+    {
+      "id": "drgawki",
+      "label": "Drgawki",
+      "questions": [
+        {
+          "id": "pierwszy_incydent",
+          "text": "Czy to był pierwszy incydent?",
+          "type": "tri",
+          "weight_yes": 50,
+          "weight_maybe": 25,
+          "weight_no": 0
+        },
+        {
+          "id": "czas_trwania",
+          "text": "Czas trwania:",
+          "type": "select",
+          "options": [
+            {
+              "label": "kilka-kilkanaście sekund",
+              "weight": 0
+            },
+            {
+              "label": "do 1 minuty",
+              "weight": 0
+            },
+            {
+              "label": "1–5 min",
+              "weight": 0
+            },
+            {
+              "label": "powyżej 5 minut",
+              "weight": 50
+            }
+          ]
+        },
+        {
+          "id": "utrata_przytomnosci",
+          "text": "Czy doszło do utraty przytomności?",
+          "type": "tri",
+          "weight_yes": 100,
+          "weight_maybe": 50,
+          "weight_no": 0
+        },
+        {
+          "id": "infekcja_goraczka",
+          "text": "Czy pacjent był w trakcie infekcji z wysoką gorączką?",
+          "type": "tri",
+          "weight_yes": 0,
+          "weight_maybe": 0,
+          "weight_no": 0
+        },
+        {
+          "id": "nagla_zmiana_pozycji",
+          "text": "Czy incydent wystąpił po nagłej zmianie pozycji ciała – po wstaniu?",
+          "type": "tri",
+          "weight_yes": 0,
+          "weight_maybe": 0,
+          "weight_no": 0
+        },
+        {
+          "id": "deprywacja_snu",
+          "text": "Czy incydent był poprzedzony deprywacją snu?",
+          "type": "tri",
+          "weight_yes": 100,
+          "weight_maybe": 50,
+          "weight_no": 0
+        },
+        {
+          "id": "duzy_stres",
+          "text": "Czy incydent był poprzedzony dużym stresem?",
+          "type": "tri",
+          "weight_yes": 0,
+          "weight_maybe": 0,
+          "weight_no": 0
+        },
+        {
+          "id": "w_trakcie_placzu",
+          "text": "Czy incydent wystąpił w trakcie płaczu?",
+          "type": "tri",
+          "weight_yes": 0,
+          "weight_maybe": 0,
+          "weight_no": 0
+        },
+        {
+          "id": "objawy_prodromalne",
+          "text": "Czy incydent był poprzedzony takimi objawami (mroczki, uczucie \"że zaraz zemdleje\", osłabienie)?",
+          "type": "tri",
+          "weight_yes": 0,
+          "weight_maybe": 0,
+          "weight_no": 0
+        },
+        {
+          "id": "objawy_dodatkowe",
+          "text": "Czy występowały dodatkowe objawy (oddanie moczu, szczękościsk, ślinotok/piana, przygryzienie języka)?",
+          "type": "tri",
+          "weight_yes": 100,
+          "weight_maybe": 50,
+          "weight_no": 0
+        }
+      ]
+    },
+    {
+      "id": "zagalpienie",
+      "label": "Wyłączenie/zagapienie/ograniczenie kontaktu",
+      "questions": [
+        {
+          "id": "pierwszy_incydent",
+          "text": "Czy to był pierwszy incydent?",
+          "type": "tri",
+          "weight_yes": 50,
+          "weight_maybe": 25,
+          "weight_no": 0
+        },
+        {
+          "id": "czas_trwania_zagapienia",
+          "text": "Czas trwania zagapienia?",
+          "type": "select",
+          "options": [
+            {
+              "label": "<5 sekund",
+              "weight": 0
+            },
+            {
+              "label": "5–30 sekund",
+              "weight": 50
+            },
+            {
+              "label": ">30 sekund",
+              "weight": 50
+            }
+          ]
+        },
+        {
+          "id": "czestosc_dzienna",
+          "text": "Jak często w ciągu dnia występują incydenty?",
+          "type": "select",
+          "options": [
+            {
+              "label": "rzadko",
+              "weight": 0
+            },
+            {
+              "label": "kilka razy",
+              "weight": 50
+            },
+            {
+              "label": "wiele razy",
+              "weight": 50
+            }
+          ]
+        },
+        {
+          "id": "czestotliwosc",
+          "text": "Częstotliwość występowania incydentów (w skali tygodni/miesięcy)?",
+          "type": "select",
+          "options": [
+            {
+              "label": "sporadycznie",
+              "weight": 0
+            },
+            {
+              "label": "okresowo",
+              "weight": 50
+            },
+            {
+              "label": "często",
+              "weight": 50
+            }
+          ]
+        },
+        {
+          "id": "reaktywnosc",
+          "text": "Czy w trakcie incydentu pacjent jest reaktywny (odpowiada, kontakt wzrokowy)?",
+          "type": "tri",
+          "weight_yes": 0,
+          "weight_maybe": 0,
+          "weight_no": 0
+        },
+        {
+          "id": "proba_przerwania",
+          "text": "Czy próbowano przerwać incydent i czy się udało?",
+          "type": "select",
+          "options": [
+            {
+              "label": "nie próbowano / nie udało się",
+              "weight": 0
+            },
+            {
+              "label": "udało się przerwać",
+              "weight": 0
+            }
+          ]
+        },
+        {
+          "id": "zwiększenie_czest",
+          "text": "Czy w ostatnim czasie obserwuje się zwiększenie częstotliwości incydentów?",
+          "type": "tri",
+          "weight_yes": 50,
+          "weight_maybe": 25,
+          "weight_no": 0
+        },
+        {
+          "id": "okolicznosci_spec",
+          "text": "Czy incydenty występują wyłącznie w określonych okolicznościach (np. szkoła, TV, jazda autem)?",
+          "type": "tri",
+          "weight_yes": 0,
+          "weight_maybe": 0,
+          "weight_no": 0
+        },
+        {
+          "id": "wyzwalacze",
+          "text": "Czy coś wywołuje incydenty (np. wysiłek fizyczny)?",
+          "type": "tri",
+          "weight_yes": 0,
+          "weight_maybe": 0,
+          "weight_no": 0
+        },
+        {
+          "id": "objawy_ruchowe",
+          "text": "Czy incydentom towarzyszą objawy ruchowe (szarpnięcia kończyn)?",
+          "type": "tri",
+          "weight_yes": 100,
+          "weight_maybe": 50,
+          "weight_no": 0
+        },
+        {
+          "id": "automatyzmy_oczy",
+          "text": "Czy towarzyszą automatyzmy (mlaskanie/ślinienie) lub zwrot gałek ocznych w jedną stronę?",
+          "type": "tri",
+          "weight_yes": 100,
+          "weight_maybe": 50,
+          "weight_no": 0
+        }
+      ]
+    },
+    {
+      "id": "omdlenia",
+      "label": "Utrata przytomności/omdlenia",
+      "questions": [
+        {
+          "id": "pierwszy_incydent",
+          "text": "Czy to był pierwszy incydent?",
+          "type": "tri",
+          "weight_yes": 20,
+          "weight_maybe": 10,
+          "weight_no": 0
+        },
+        {
+          "id": "utrata_przytomnosci",
+          "text": "Czy doszło do utraty przytomności?",
+          "type": "tri",
+          "weight_yes": 30,
+          "weight_maybe": 15,
+          "weight_no": 0
+        },
+        {
+          "id": "drgawki",
+          "text": "Czy wystąpiły drgawki? (jeśli tak, >5 min?)",
+          "type": "tri",
+          "weight_yes": 40,
+          "weight_maybe": 20,
+          "weight_no": 0
+        },
+        {
+          "id": "ortostatyka",
+          "text": "Czy epizod po wstaniu/dłuższym staniu/na czczo/duszne pomieszczenie/pobranie krwi?",
+          "type": "tri",
+          "weight_yes": 0,
+          "weight_maybe": 0,
+          "weight_no": 0
+        },
+        {
+          "id": "deprywacja_snu",
+          "text": "Czy incydent był poprzedzony deprywacją snu?",
+          "type": "tri",
+          "weight_yes": 20,
+          "weight_maybe": 10,
+          "weight_no": 0
+        },
+        {
+          "id": "stres",
+          "text": "Czy incydent był poprzedzony dużym stresem?",
+          "type": "tri",
+          "weight_yes": 0,
+          "weight_maybe": 0,
+          "weight_no": 0
+        },
+        {
+          "id": "prodromy_omdlenia",
+          "text": "Czy były mroczki/uczucie omdlenia/osłabienie przed epizodem?",
+          "type": "tri",
+          "weight_yes": 0,
+          "weight_maybe": 0,
+          "weight_no": 0
+        },
+        {
+          "id": "objawy_dodatkowe",
+          "text": "Czy występowały oddanie moczu/szczękościsk/ślinotok/piana?",
+          "type": "tri",
+          "weight_yes": 30,
+          "weight_maybe": 15,
+          "weight_no": 0
+        },
+        {
+          "id": "postictal",
+          "text": "Czy po incydencie pacjent był senny/splątany/nie odpowiadał logicznie?",
+          "type": "tri",
+          "weight_yes": 40,
+          "weight_maybe": 20,
+          "weight_no": 0
+        }
+      ]
+    }
+  ]
+}
