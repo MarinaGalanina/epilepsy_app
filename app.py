@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ---------------------- ✨ GLOBALNY, RESPONSYWNY STYL ----------------------
+# ---------------------- ✨ GLOBALNY, RESPONSYWNY STYL (bez czerwieni) ----------------------
 st.markdown("""
 <style>
 :root { --radius: 16px; }
@@ -22,20 +22,15 @@ div[data-testid="stAppViewContainer"] .block-container { padding-top: 12px; padd
 .stProgress > div > div > div { border-radius: 999px; }
 .q-card { border:1px solid rgba(0,0,0,.08); border-radius: var(--radius); padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,.05); background: var(--background-color); }
 .q-title { font-size:1.06rem; font-weight:700; margin:0 0 .5rem 0; line-height:1.35; }
-.btn-grid { display:grid; grid-template-columns: 1fr; gap:10px; margin-top:.5rem; }
-@media (min-width: 560px){ .btn-grid{ grid-template-columns: repeat(3, 1fr);} }
-.choice-btn { width:100%; height:64px; border-radius: var(--radius); font-weight:800; }
-.choice-btn span { font-size:1.05rem; }
 .badge { display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .7rem; border-radius:999px; background:rgba(0,0,0,.06); font-size:.85rem; }
 .progress-dots { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 4px 0; }
 .dot { width:10px; height:10px; border-radius:50%; background:rgba(0,0,0,.15); }
 .dot.on { background:rgba(0,0,0,.5); }
 .lock-note { font-size:.9rem; opacity:.8; }
-hr { margin: 10px 0 4px 0; }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------- 🔒 LOGOWANIE (BEZ ZMIAN) ----------------------
+# ---------------------- 🔒 LOGOWANIE (bez czerwonych alertów/emoji) ----------------------
 def check_access() -> bool:
     """
     Ekran logowania wyświetlany dokładnie na środku ekranu.
@@ -43,7 +38,7 @@ def check_access() -> bool:
     """
     ACCESS_CODE = st.secrets.get("ACCESS_CODE") or os.environ.get("ACCESS_CODE")
     if not ACCESS_CODE:
-        st.error("Brak ustawionego ACCESS_CODE w Secrets/ENV.")
+        st.warning("Brak ustawionego ACCESS_CODE w Secrets/ENV. Skontaktuj się z administratorem.")
         st.stop()
 
     # status sesji
@@ -51,16 +46,15 @@ def check_access() -> bool:
     if auth_ok:
         return True
 
-    # CSS: centrowanie głównego kontenera, bez dziwnych marginesów
+    # CSS: centrowanie głównego kontenera
     st.markdown(
         """
         <style>
-        /* uderzamy w główny kontener widoku */
         div[data-testid="stAppViewContainer"] > .main {
             height: 100vh;
             display: flex;
-            align-items: center;          /* pion */
-            justify-content: center;       /* poziom */
+            align-items: center;
+            justify-content: center;
             padding-top: 0 !important;
             padding-bottom: 0 !important;
         }
@@ -75,20 +69,18 @@ def check_access() -> bool:
         }
         .auth-title { margin: 6px 0 2px 0; font-weight: 700; }
         .auth-sub   { opacity: .8; margin-bottom: 14px; }
-        .auth-btn button { width: 100%; height: 42px; font-weight: 600; }
         @keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
         </style>
         """,
         unsafe_allow_html=True
     )
 
-    # środkowa karta logowania (bez callbacków)
+    # środkowa karta logowania
     st.markdown('<div class="auth-card">', unsafe_allow_html=True)
     st.image("https://img.icons8.com/color/96/brain.png", width=76)
     st.markdown('<div class="auth-title"> Szacowanie ryzyka cech napadów</div>', unsafe_allow_html=True)
     st.markdown('<div class="auth-sub">Wpisz kod dostępu, aby kontynuować</div>', unsafe_allow_html=True)
 
-    # używamy formy – submit = naturalny rerender (bez st.rerun)
     with st.form("login_form", clear_on_submit=False):
         code = st.text_input("Kod dostępu", type="password", label_visibility="collapsed")
         submitted = st.form_submit_button("Zaloguj", use_container_width=True)
@@ -97,18 +89,19 @@ def check_access() -> bool:
 
     if submitted:
         if code == ACCESS_CODE:
-            st.session_state.auth_ok = True   # kolejny rerender pokaże aplikację
+            st.session_state.auth_ok = True
         else:
-            st.error("Błędny kod ❌")
+            # neutralny komunikat bez czerwieni/emoji
+            st.warning("Niepoprawny kod. Spróbuj ponownie.")
 
-    st.stop()  # dopóki nie zalogowany – nic dalej się nie renderuje
+    st.stop()
 
 # ---------------------- ⛔️ Strażnik logowania ----------------------
 if not check_access():
     st.stop()
 
 # ---------------------- 🔁 Wylogowanie ----------------------
-st.sidebar.success("Zalogowano ✅")
+st.sidebar.success("Zalogowano")
 if st.sidebar.button("Wyloguj"):
     st.session_state.auth_ok = False
 
@@ -125,7 +118,7 @@ def load_survey(path: str) -> Dict[str, Any]:
 try:
     survey = load_survey("survey.json")
 except FileNotFoundError:
-    st.error("Nie znaleziono pliku survey.json. Upewnij się, że plik istnieje w katalogu aplikacji.", icon="🚫")
+    st.warning("Nie znaleziono pliku survey.json. Upewnij się, że plik istnieje w katalogu aplikacji.")
     st.stop()
 
 paths: Dict[str, Dict[str, Any]] = {p["id"]: p for p in survey["paths"]}
@@ -149,7 +142,7 @@ _init_state()
 # ---------------------- 🧩 WYBÓR ŚCIEŻKI ----------------------
 st.sidebar.header("Wybór ścieżki (typ incydentu)")
 if st.session_state.finished:
-    st.sidebar.info("Wynik został obliczony. Aby rozpocząć nowy przebieg, kliknij „Zacznij od nowa”.")
+    st.sidebar.info("Wynik obliczony. Aby rozpocząć nowy przebieg, kliknij „Zacznij od nowa”.")
     st.sidebar.write(f"Wybrana ścieżka: **{[k for k,v in path_labels.items() if v==st.session_state.selected_path_id][0]}**")
 else:
     chosen_label = st.sidebar.radio("Typ incydentu:", list(path_labels.keys()))
@@ -202,30 +195,23 @@ if nq == 0:
 else:
     q_idx = st.session_state.current_q_idx
     st.progress(int((q_idx / max(nq,1)) * 100))
-    # kropki postępu
     dots = "".join([f'<span class="dot{" on" if i<q_idx else ""}"></span>' for i in range(nq)])
     st.markdown(f'<div class="progress-dots" aria-label="postęp pytań">{dots}</div>', unsafe_allow_html=True)
     st.markdown(f'<span class="badge">Pytanie {q_idx + 1} z {nq}</span>', unsafe_allow_html=True)
 
-# ---------------------- 🗳️ PRZYCISKI WYBORU (auto-advance) ----------------------
-def choice_row(qid: str, label: str, value: str, primary=False):
-    return st.button(
-        label,
-        key=f"btn_{qid}_{value}",
-        use_container_width=True,
-        type="primary" if primary else "secondary",
-        help=None
-    )
-
+# ---------------------- 🗳️ PRZYCISKI WYBORU (auto-advance, neutralne) ----------------------
 def tri_buttons(qid: str):
     cols = st.columns(3)
     clicked = None
     with cols[0]:
-        if choice_row(qid, "❌ Nie", "nie"): clicked = "nie"
+        if st.button("Nie", key=f"btn_{qid}_nie", use_container_width=True, type="secondary"):
+            clicked = "nie"
     with cols[1]:
-        if choice_row(qid, "✅ Tak", "tak", primary=True): clicked = "tak"
+        if st.button("Tak", key=f"btn_{qid}_tak", use_container_width=True, type="primary"):
+            clicked = "tak"
     with cols[2]:
-        if choice_row(qid, "❔ Nie wiem", "nie_wiem"): clicked = "nie wiem"
+        if st.button("Nie wiem", key=f"btn_{qid}_niewiem", use_container_width=True, type="secondary"):
+            clicked = "nie wiem"
     return clicked
 
 # ---------------------- 🎛️ JEDNO PYTANIE NA EKRANIE — BEZ POWROTU ----------------------
@@ -239,7 +225,6 @@ if not st.session_state.finished and nq > 0:
         answer_clicked = tri_buttons(q["id"])
     elif q["type"] == "select":
         labels = [opt["label"] for opt in q.get("options", [])]
-        # wybór – natychmiastowe przejście dalej po wyborze
         val = st.selectbox("", ["-- wybierz --"] + labels, index=0, key=f"sel_{q['id']}")
         if val != "-- wybierz --":
             answer_clicked = val
@@ -252,10 +237,10 @@ if not st.session_state.finished and nq > 0:
         if st.session_state.current_q_idx + 1 >= nq:
             score, max_score, prob = compute_scores(st.session_state.answers, path)
             st.session_state.result = {"score": score, "max_score": max_score, "prob": prob}
-            st.session_state.finished = True     # 🔒 zakmnięcie edycji
+            st.session_state.finished = True
             st.rerun()
         else:
-            st.session_state.current_q_idx += 1   # ➡️ następne pytanie
+            st.session_state.current_q_idx += 1
             st.rerun()
 
 st.divider()
@@ -291,14 +276,11 @@ if st.session_state.finished and st.session_state.result:
             mime="application/json"
         )
 
-    st.info("To narzędzie ma charakter edukacyjny i nie zastępuje porady lekarskiej.", icon="ℹ️")
+    st.info("To narzędzie ma charakter edukacyjny i nie zastępuje porady lekarskiej.")
     st.caption('<span class="lock-note">Odpowiedzi są zablokowane. Aby wypełnić ponownie, uruchom nowy przebieg.</span>', unsafe_allow_html=True)
 
-    if st.button("🔁 Zacznij od nowa"):
+    if st.button("Zacznij od nowa"):
         st.session_state.current_q_idx = 0
         st.session_state.answers = {}
         st.session_state.finished = False
-        st.session_state.result = None
-        st.rerun()
-
-st.caption("Wersja: " + survey["meta"].get("version", "unknown"))
+        st.session_state._
