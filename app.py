@@ -52,52 +52,55 @@ def save_locally(*, user_id, survey_version, path_id, q_idx, answers_dict, finis
 
 # --- [4] OPCJONALNY EXPORT DO CHMURY (Supabase REST lub dowolny webhook) ---
 def save_remote(payload: dict):
-    # a) Webhook (np. Make/Zapier) – podaj URL w secrets: WEBHOOK_URL
     WEBHOOK_URL = st.secrets.get("WEBHOOK_URL")
     if WEBHOOK_URL:
         try:
-            requests.post(WEBHOOK_URL, json=payload, timeout=5)
+            r = requests.post(WEBHOOK_URL, json=payload, timeout=5)
+            if r.status_code >= 300:
+                st.warning(f"Webhook error {r.status_code}: {r.text}")
         except Exception as e:
-            st.debug(f"Webhook save failed: {e}") if hasattr(st, "debug") else None
+            st.warning(f"Webhook save failed: {e}")
 
-    # b) Supabase REST – stwórz tabelę 'progress' o polach jak wyżej
     SUPABASE_URL = st.secrets.get("SUPABASE_URL")
     SUPABASE_KEY = st.secrets.get("SUPABASE_KEY")
     if SUPABASE_URL and SUPABASE_KEY:
         try:
-            # Wymaga skonfigurowanego REST i uprawnień do inserta na tabeli 'progress'
             r = requests.post(
                 f"{SUPABASE_URL}/rest/v1/progress",
                 headers={
                     "apikey": SUPABASE_KEY,
                     "Authorization": f"Bearer {SUPABASE_KEY}",
                     "Content-Type": "application/json",
-                    "Prefer": "return=minimal"
+                    # poproś o zwrotkę – łatwiej debugować
+                    "Prefer": "return=representation"
                 },
                 json=payload,
-                timeout=5
+                timeout=8
             )
-            # Opcjonalnie: sprawdź r.status_code
+            if r.status_code not in (200, 201):
+                st.warning(f"Supabase error {r.status_code}: {r.text}")
         except Exception as e:
-            st.debug(f"Supabase save failed: {e}") if hasattr(st, "debug") else None
+            st.warning(f"Supabase save failed: {e}")
+
 
 def autosave(*, finished=False, result=None):
-    # Zbierz metadane
     survey_version = survey.get("meta", {}).get("version", "unknown")
     path_id = st.session_state.selected_path_id
     q_idx = st.session_state.current_q_idx
+
     payload = {
         "created_at": _now_iso(),
         "user_id": st.session_state.user_id,
         "survey_version": survey_version,
         "path_id": path_id,
         "q_idx": q_idx,
-        "answers": st.session_state.answers,
         "finished": finished,
-        "result": result
+        # 👇 nazwy muszą zgadzać się z kolumnami w tabeli
+        "answers_json": st.session_state.answers,
+        "result_json": result
     }
 
-    # Lokalnie
+    # lokalny zapis — jak było
     save_locally(
         user_id=st.session_state.user_id,
         survey_version=survey_version,
@@ -108,7 +111,7 @@ def autosave(*, finished=False, result=None):
         result_dict=result
     )
 
-    # Opcjonalnie chmura
+    # chmura
     save_remote(payload)
 # ---------------------- ⚙️ USTAWIENIA STRONY ----------------------
 st.set_page_config(
