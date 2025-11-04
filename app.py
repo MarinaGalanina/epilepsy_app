@@ -208,11 +208,17 @@ def check_access() -> bool:
 if not check_access():
     st.stop()
 
-# ---------------------- 🔁 WYLOGOWANIE ----------------------
+# 🔁 WYLOGOWANIE – sidebar + awaryjny top-bar
 st.sidebar.success("Zalogowano")
 if st.sidebar.button("Wyloguj"):
     st.session_state.auth_ok = False
     st.rerun()
+
+top_cols = st.columns([1, 1, 1, 1, 1])
+with top_cols[-1]:
+    if st.button("Wyloguj", key="logout_top"):
+        st.session_state.auth_ok = False
+        st.rerun()
 
 # ---------------------- 📄 WCZYTANIE ANKIETY ----------------------
 
@@ -225,6 +231,10 @@ try:
     survey = load_survey("survey.json")
 except FileNotFoundError:
     st.warning("Nie znaleziono pliku survey.json.")
+    st.stop()
+
+if not survey.get("paths"):
+    st.warning("Brak zdefiniowanych ścieżek w survey.json.")
     st.stop()
 
 paths: Dict[str, Dict[str, Any]] = {p["id"]: p for p in survey["paths"]}
@@ -306,7 +316,6 @@ def compute_scores(answers: Dict[str, Any], path: Dict[str, Any]):
 
         if qtype == "tri":
             w_yes, w_maybe, w_no = _tri_weights(q)
-            # max punkt dla tego pytania to maksymalna z wag odpowiedzi
             per_q_max = max(w_yes, w_maybe, w_no)
             max_score += per_q_max
 
@@ -319,7 +328,6 @@ def compute_scores(answers: Dict[str, Any], path: Dict[str, Any]):
                 score += w_no
 
         elif qtype == "select":
-            # w 'select' tylko opcje z weight wpływają na wynik
             opts = q.get("options", [])
             opt_weights = [float(o.get("weight", 0) or 0) for o in opts]
             per_q_max = max(opt_weights) if opt_weights else 0.0
@@ -332,9 +340,6 @@ def compute_scores(answers: Dict[str, Any], path: Dict[str, Any]):
                         score += float(o.get("weight", 0) or 0)
                         break
 
-        # Inne typy/bez typu: ignorowane w punktacji
-
-    # Przeliczenie na „ryzyko”
     if max_score <= 0:
         prob = 0.0
     else:
@@ -387,14 +392,13 @@ if not st.session_state.finished and nq > 0:
     # Nagłówek + badge "liczy się do wyniku" tylko gdy pytanie ma wagi
     q_title = q.get("text", "Pytanie")
     if _is_scored(q):
-        st.subheader(st.markdown(f"{q_title} <span class='badge-score'>liczy się do wyniku</span>", unsafe_allow_html=True))
+        st.markdown(f"### {q_title} <span class='badge-score'>liczy się do wyniku</span>", unsafe_allow_html=True)
     else:
-        st.subheader(q_title)
+        st.markdown(f"### {q_title}")
 
     answer_clicked = None
     if q.get("type") == "tri":
         answer_clicked = tri_buttons(q["id"])
-
     elif q.get("type") == "select":
         labels = [opt["label"] for opt in q.get("options", [])]
         val = st.selectbox("", ["-- wybierz --"] + labels, index=0, key=f"sel_{q['id']}")
@@ -441,7 +445,7 @@ if st.session_state.finished and st.session_state.result:
         st.json(pretty)
         st.download_button(
             "Pobierz wynik (JSON)",
-            data=json.dumps(prety, ensure_ascii=False, indent=2).encode("utf-8"),
+            data=json.dumps(pretty, ensure_ascii=False, indent=2).encode("utf-8"),
             file_name="wynik_ankiety.json",
             mime="application/json"
         )
@@ -457,3 +461,4 @@ if st.session_state.finished and st.session_state.result:
             st.rerun()
 
 st.caption("Wersja: " + survey.get("meta", {}).get("version", "unknown"))
+st.caption(survey.get("meta", {}).get("disclaimer", ""))
