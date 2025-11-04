@@ -253,7 +253,15 @@ window.addEventListener('message', (event) => {
 """, unsafe_allow_html=True)
 
 # Ukryty "prawdziwy" przycisk Streamlit (działa po kliknięciu JS)
-if st.button("Wyloguj", key="logout_hidden", help="Ukryty przycisk wylogowania"):
+st.markdown("""
+<style>
+button[data-testid="stButton"][key="logout_hidden"] {
+    display: none !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+if st.button("Wyloguj", key="logout_hidden"):
     st.session_state.auth_ok = False
     st.rerun()
 
