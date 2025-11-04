@@ -206,10 +206,10 @@ if not check_access():
 st.sidebar.success("Zalogowano")
 
 # duży spacer + jedna mała kolumna na przycisk
-_spacer, col_logout = st.columns([11, 1])
+_spacer, col_logout = st.columns([10, 2])
 with col_logout:
     if st.button("Wyloguj", key="logout_btn_top", use_container_width=True):
-        st.session_state.auth_ok = False
+        st.session_state.clear()
         st.rerun()
 # ---------------------- 📄 LOAD SURVEY ----------------------
 
