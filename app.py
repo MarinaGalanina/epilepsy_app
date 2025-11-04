@@ -205,7 +205,7 @@ if not check_access():
 # ---------------------- 🔁 GÓRNY PRZYCISK (po prawej) ----------------------
 st.sidebar.success("Zalogowano")
 
-# układ: duży odstęp po lewej, po prawej dwa przyciski
+# jeden wiersz z dwoma małymi kolumnami po prawej
 _spacer, col_reset, col_logout = st.columns([8, 1, 1])
 
 with col_reset:
@@ -219,11 +219,7 @@ with col_reset:
 
 with col_logout:
     if st.button("Wyloguj", key="logout_btn_top", use_container_width=True):
-        # pełny reset sesji – usuwa wszystko: odpowiedzi, postęp, wynik, user_id, login
-        st.session_state.clear()
-        # opcjonalnie czyszczenie cache (jeśli chcesz mieć absolutnie świeży start)
-        # st.cache_data.clear()
-        # st.cache_resource.clear()
+        st.session_state.auth_ok = False
         st.rerun()
 
 # ---------------------- 📄 LOAD SURVEY ----------------------
