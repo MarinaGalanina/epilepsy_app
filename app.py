@@ -252,12 +252,17 @@ def _current_label() -> str:
 
 # ---------------------- 🧩 PATH PICKER ----------------------
 cur_label = _current_label()
-top_choice = st.selectbox(
-    "Typ incydentu",
-    labels_list,
-    index=labels_list.index(cur_label),
-    key="top_select"
-)
+if st.session_state.current_q_idx == 0 and not st.session_state.finished:
+    top_choice = st.selectbox(
+        "Typ incydentu",
+        labels_list,
+        index=labels_list.index(cur_label),
+        key="top_select"
+    )
+else:
+    # tylko wyświetl nazwę bez możliwości zmiany
+    st.markdown(f"**Typ incydentu:** {cur_label}")
+    top_choice = cur_label
 
 st.sidebar.header("Wybór ścieżki")
 if st.session_state.finished:
