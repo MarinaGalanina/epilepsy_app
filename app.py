@@ -369,33 +369,59 @@ def tri_buttons(qid: str):
     return clicked
 
 if not st.session_state.finished and nq > 0:
-    q = questions[st.session_state.current_q_idx]
+    q_idx = st.session_state.current_q_idx
+    q = questions[q_idx]
 
     q_title = q.get("text", "Pytanie")
     st.markdown(f"### {q_title}")
 
+    # pokaz odpowiedź, jeśli już była
+    prev_answer = st.session_state.answers.get(q["id"], None)
     answer_clicked = None
+
     if q.get("type") == "tri":
-        answer_clicked = tri_buttons(q["id"])
+        cols = st.columns(3)
+        with cols[0]:
+            if st.button("Nie", key=f"btn_{q['id']}_nie", use_container_width=True):
+                answer_clicked = "nie"
+        with cols[1]:
+            if st.button("Tak", key=f"btn_{q['id']}_tak", use_container_width=True):
+                answer_clicked = "tak"
+        with cols[2]:
+            if st.button("Nie wiem", key=f"btn_{q['id']}_niewiem", use_container_width=True):
+                answer_clicked = "nie wiem"
+
     elif q.get("type") == "select":
         labels = [opt["label"] for opt in q.get("options", [])]
-        val = st.selectbox("", ["-- wybierz --"] + labels, index=0, key=f"sel_{q['id']}")
+        default_index = labels.index(prev_answer) + 1 if prev_answer in labels else 0
+        val = st.selectbox("", ["-- wybierz --"] + labels, index=default_index, key=f"sel_{q['id']}")
         if val != "-- wybierz --":
             answer_clicked = val
 
+    # zapisanie odpowiedzi (jeśli kliknięto)
     if answer_clicked is not None:
         st.session_state.answers[q["id"]] = answer_clicked
         autosave(finished=False, result=None)
 
-        if st.session_state.current_q_idx + 1 >= nq:
-            score, max_score, prob = compute_scores(st.session_state.answers, path)
-            st.session_state.result = {"score": score, "max_score": max_score, "prob": prob}
-            st.session_state.finished = True
-            autosave(finished=True, result=st.session_state.result)
+    # nawigacja
+    nav_prev, nav_next = st.columns([1, 1])
+    with nav_prev:
+        if st.button("← Wstecz", use_container_width=True, disabled=(q_idx == 0)):
+            st.session_state.current_q_idx = max(0, q_idx - 1)
             st.rerun()
-        else:
-            st.session_state.current_q_idx += 1
-            st.rerun()
+
+    with nav_next:
+        if st.button("Dalej →", use_container_width=True):
+            # jeśli ostatnie pytanie — zakończ
+            if q_idx + 1 >= nq:
+                score, max_score, prob = compute_scores(st.session_state.answers, path)
+                st.session_state.result = {"score": score, "max_score": max_score, "prob": prob}
+                st.session_state.finished = True
+                autosave(finished=True, result=st.session_state.result)
+                st.rerun()
+            else:
+                st.session_state.current_q_idx += 1
+                st.rerun()
 
 st.divider()
 
