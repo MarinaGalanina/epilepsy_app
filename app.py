@@ -204,17 +204,30 @@ if not check_access():
     st.stop()
 
 # ---------------------- 🔁 LOGOUT ----------------------
+# ---------------------- 🔁 WYLOGOWANIE ----------------------
 st.sidebar.success("Zalogowano")
-if st.sidebar.button("Wyloguj"):
+
+if st.sidebar.button("Wyloguj z panelu"):
     st.session_state.auth_ok = False
     st.rerun()
 
-# Optional top-right emergency logout
-top_cols = st.columns([1, 1, 1, 1, 1])
-with top_cols[-1]:
-    if st.button("Wyloguj", key="logout_top"):
+# Estetyczny przycisk w prawym górnym rogu
+st.markdown("""
+<style>
+.logout-btn {
+  position: absolute;
+  top: 18px;
+  right: 28px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+logout_col = st.container()
+with logout_col:
+    if st.button("Wyloguj", key="logout_fixed"):
         st.session_state.auth_ok = False
         st.rerun()
+st.markdown('<div class="logout-btn"></div>', unsafe_allow_html=True)
 
 # ---------------------- 📄 LOAD SURVEY ----------------------
 
