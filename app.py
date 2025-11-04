@@ -203,7 +203,6 @@ if not check_access():
     st.stop()
 
 # ---------------------- 🔁 GÓRNY PRZYCISK (po prawej) ----------------------
-s# ---------------------- 🔁 GÓRNY PRZYCISK (tylko Wyloguj po prawej) ----------------------
 st.sidebar.success("Zalogowano")
 
 # duży spacer + jedna mała kolumna na przycisk
