@@ -466,7 +466,7 @@ if st.session_state.finished and st.session_state.result:
             mime="application/json"
         )
 
-    st.markdown('<div style="display:flex; justify-content:flex-end;">', unsafe_allow_html=True)
+    st.markdown('<div style="display:flex; justify-content:flex-start;">', unsafe_allow_html=True)
     if st.button("Zacznij od nowa", key="reset_btn"):
         autosave(finished=False, result={"event": "reset"})
         st.session_state.current_q_idx = 0
@@ -475,6 +475,7 @@ if st.session_state.finished and st.session_state.result:
         st.session_state.result = None
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
+
 
 # ---------------------- 📝 FOOTER ----------------------
 st.caption("Wersja: " + survey.get("meta", {}).get("version", "unknown"))
