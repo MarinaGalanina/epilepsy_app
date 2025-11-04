@@ -9,8 +9,8 @@ import requests
 
 # ---------------------- ⚙️ FUNKCJE POMOCNICZE ----------------------
 
-# Bezpieczne czytanie sekretów — najpierw ENV, potem st.secrets
 def read_secret(key: str, default=None):
+    """Bezpieczne czytanie sekretów — najpierw ENV, potem st.secrets"""
     if key in os.environ:
         return os.environ.get(key)
     try:
@@ -18,7 +18,6 @@ def read_secret(key: str, default=None):
     except Exception:
         return default
 
-# Ścieżka do bazy danych (Railway volume → /data/data.db)
 DB_PATH = os.environ.get("DB_PATH", "data.db")
 
 def _now_iso():
@@ -121,7 +120,6 @@ def autosave(*, finished=False, result=None):
         finished=finished,
         result_dict=result
     )
-
     save_remote(payload)
 
 # ---------------------- 🌐 STRONA GŁÓWNA ----------------------
@@ -130,7 +128,7 @@ st.set_page_config(
     page_title="Ryzyko cech napadu (DEMO)",
     page_icon="🧠",
     layout="wide",
-    initial_sidebar_state="expanded"   # ⬅️ expanded, żeby menu było widoczne
+    initial_sidebar_state="expanded"  # menu widoczne od startu
 )
 
 # ---------------------- 💄 STYL ----------------------
@@ -144,25 +142,16 @@ div[data-testid="stStatusWidget"], [data-testid="stAppStatusContainer"] {
   visibility: hidden !important;
 }
 
-/* ⛔️ NIE ukrywamy już przełącznika sidebara */
 div[data-testid="collapsedControl"] { display: flex !important; }
-
-@media (max-width: 768px){
-  div[data-testid="collapsedControl"] {
-    display: flex !important;
-    opacity: 1 !important;
-    right: 12px; top: 12px;
-  }
-  div[data-testid="collapsedControl"] button {
-    background: rgba(0,0,0,.06) !important;
-    border: 1px solid rgba(0,0,0,.15) !important;
-    box-shadow: none !important;
-    color: inherit !important;
-  }
-}
 
 div[data-testid="stAppViewContainer"] .block-container {
   padding-top: 12px; padding-bottom: 28px; max-width: 980px;
+}
+
+/* Badge przy pytaniu, które liczy się do wyniku */
+.badge-score {
+  display:inline-block; margin-left:8px; padding:2px 8px; font-size:12px;
+  border-radius:999px; background:#ffe8e6; color:#b30000; border:1px solid #ffb3ac;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -170,20 +159,18 @@ div[data-testid="stAppViewContainer"] .block-container {
 # ---------------------- 🔒 LOGOWANIE ----------------------
 
 def check_access() -> bool:
-    # 1) Bypass tylko jeśli DISABLE_AUTH ustawione
+    # Bypass tylko jeśli DISABLE_AUTH ustawione
     if os.environ.get("DISABLE_AUTH", "").lower() in {"1", "true", "yes"}:
         return True
 
-    # 2) Jeśli już zalogowany – kontynuuj
     if st.session_state.get("auth_ok", False):
         return True
 
-    # 3) Czytamy kod; jeśli brak – ustawiamy domyślny "demo" (dla pokazów)
     ACCESS_CODE = read_secret("ACCESS_CODE", None)
     if not ACCESS_CODE:
-        ACCESS_CODE = "demo"
+        ACCESS_CODE = "demo"  # domyślny kod na potrzeby pokazu
 
-    # ---- UI logowania ----
+    # UI logowania
     st.markdown("""
     <style>
     div[data-testid="stAppViewContainer"] > .main {
@@ -258,12 +245,10 @@ def _init_state():
         st.session_state.result = None
 _init_state()
 
-# Aktualna etykieta na podstawie selected_path_id
 def _current_label() -> str:
     return [k for k, v in path_labels.items() if v == st.session_state.selected_path_id][0]
 
 # ---------------------- 🧩 WYBÓR ŚCIEŻKI ----------------------
-# Fallback selector u góry (na wypadek ukrytego sidebara)
 cur_label = _current_label()
 top_choice = st.selectbox(
     "Typ incydentu",
@@ -284,7 +269,6 @@ else:
         key="sidebar_radio"
     )
 
-# Priorytet dajemy górnemu selektorowi, jeśli zmieniony
 new_label = top_choice if top_choice != cur_label else sidebar_choice
 if new_label != cur_label:
     st.session_state.selected_path_id = path_labels[new_label]
@@ -293,40 +277,83 @@ if new_label != cur_label:
     st.session_state.finished = False
     st.session_state.result = None
 
-# Po ewentualnej zmianie odświeżamy referencje
+# Aktualizacja po zmianie
 path = paths[st.session_state.selected_path_id]
 questions: List[Dict[str, Any]] = path.get("questions", [])
 nq = len(questions)
 label_text = _current_label()
 
 # ---------------------- 🔢 OCENA ----------------------
+def _tri_weights(q: Dict[str, Any]):
+    """Zwraca (w_yes, w_maybe, w_no) — brak wartości = 0.
+    Dzięki temu pytania bez wag (nie-czerwone) nie liczą się do punktacji."""
+    return (
+        float(q.get("weight_yes", 0) or 0),
+        float(q.get("weight_maybe", 0) or 0),
+        float(q.get("weight_no", 0) or 0),
+    )
+
 def compute_scores(answers: Dict[str, Any], path: Dict[str, Any]):
     score = 0.0
     max_score = 0.0
-    for q in path["questions"]:
-        qid = q["id"]; qtype = q.get("type")
+
+    for q in path.get("questions", []):
+        if q.get("noscore", False):
+            continue  # jawne wykluczenie z punktacji
+
+        qtype = q.get("type")
+        qid = q.get("id")
+
         if qtype == "tri":
-            max_score += float(q.get("weight_yes", 0))
+            w_yes, w_maybe, w_no = _tri_weights(q)
+            # max punkt dla tego pytania to maksymalna z wag odpowiedzi
+            per_q_max = max(w_yes, w_maybe, w_no)
+            max_score += per_q_max
+
             a = answers.get(qid)
             if a == "tak":
-                score += float(q.get("weight_yes", 0))
+                score += w_yes
             elif a == "nie wiem":
-                score += float(q.get("weight_maybe", 0))
+                score += w_maybe
+            elif a == "nie":
+                score += w_no
+
         elif qtype == "select":
-            weights = [float(opt.get("weight", 0)) for opt in q.get("options", [])]
-            max_score += max(weights) if weights else 0.0
+            # w 'select' tylko opcje z weight wpływają na wynik
+            opts = q.get("options", [])
+            opt_weights = [float(o.get("weight", 0) or 0) for o in opts]
+            per_q_max = max(opt_weights) if opt_weights else 0.0
+            max_score += per_q_max
+
             chosen = answers.get(qid)
-            for opt in q.get("options", []):
-                if opt["label"] == chosen:
-                    score += float(opt.get("weight", 0))
-                    break
-    if max_score == 0:
+            if chosen is not None:
+                for o in opts:
+                    if o.get("label") == chosen:
+                        score += float(o.get("weight", 0) or 0)
+                        break
+
+        # Inne typy/bez typu: ignorowane w punktacji
+
+    # Przeliczenie na „ryzyko”
+    if max_score <= 0:
         prob = 0.0
     else:
         ratio = score / max_score
         logit = (ratio - 0.5) * 6.0
         prob = 1.0 / (1.0 + np.exp(-logit))
+
     return score, max_score, prob
+
+def _is_scored(q: Dict[str, Any]) -> bool:
+    """Czy pytanie wnosi punkty? (ma jakiekolwiek wagi lub wagę opcji)"""
+    if q.get("noscore", False):
+        return False
+    if q.get("type") == "tri":
+        wy, wm, wn = _tri_weights(q)
+        return any([wy, wm, wn])
+    if q.get("type") == "select":
+        return any([float(o.get("weight", 0) or 0) > 0 for o in q.get("options", [])])
+    return False
 
 # ---------------------- 🧱 INTERFEJS ----------------------
 st.header(f"Ścieżka: {label_text}")
@@ -335,8 +362,7 @@ if nq == 0:
     st.warning("Brak pytań w tej ścieżce.")
 else:
     q_idx = st.session_state.current_q_idx
-    pct = int((q_idx / max(nq, 1)) * 100)
-    st.progress(pct)
+    st.progress(int((q_idx / max(nq, 1)) * 100))
     st.markdown(f"Pytanie {q_idx + 1} z {nq}")
 
 def tri_buttons(qid: str):
@@ -357,19 +383,30 @@ def tri_buttons(qid: str):
 
 if not st.session_state.finished and nq > 0:
     q = questions[st.session_state.current_q_idx]
-    st.subheader(q["text"])
+
+    # Nagłówek + badge "liczy się do wyniku" tylko gdy pytanie ma wagi
+    q_title = q.get("text", "Pytanie")
+    if _is_scored(q):
+        st.subheader(st.markdown(f"{q_title} <span class='badge-score'>liczy się do wyniku</span>", unsafe_allow_html=True))
+    else:
+        st.subheader(q_title)
+
     answer_clicked = None
-    if q["type"] == "tri":
+    if q.get("type") == "tri":
         answer_clicked = tri_buttons(q["id"])
-    elif q["type"] == "select":
+
+    elif q.get("type") == "select":
         labels = [opt["label"] for opt in q.get("options", [])]
         val = st.selectbox("", ["-- wybierz --"] + labels, index=0, key=f"sel_{q['id']}")
         if val != "-- wybierz --":
             answer_clicked = val
 
+    # inne typy można dodać np. input tekstowy, ale nie wpływają na ocenę
+
     if answer_clicked is not None:
         st.session_state.answers[q["id"]] = answer_clicked
         autosave(finished=False, result=None)
+
         if st.session_state.current_q_idx + 1 >= nq:
             score, max_score, prob = compute_scores(st.session_state.answers, path)
             st.session_state.result = {"score": score, "max_score": max_score, "prob": prob}
@@ -404,7 +441,7 @@ if st.session_state.finished and st.session_state.result:
         st.json(pretty)
         st.download_button(
             "Pobierz wynik (JSON)",
-            data=json.dumps(pretty, ensure_ascii=False, indent=2).encode("utf-8"),
+            data=json.dumps(prety, ensure_ascii=False, indent=2).encode("utf-8"),
             file_name="wynik_ankiety.json",
             mime="application/json"
         )
