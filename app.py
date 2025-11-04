@@ -203,25 +203,15 @@ if not check_access():
     st.stop()
 
 # ---------------------- 🔁 GÓRNY PRZYCISK (po prawej) ----------------------
+s# ---------------------- 🔁 GÓRNY PRZYCISK (tylko Wyloguj po prawej) ----------------------
 st.sidebar.success("Zalogowano")
 
-# jeden wiersz z dwoma małymi kolumnami po prawej
-_spacer, col_reset, col_logout = st.columns([8, 1, 1])
-
-with col_reset:
-    if st.button("Zacznij od nowa", key="reset_btn_top", use_container_width=True):
-        autosave(finished=False, result={"event": "reset"})
-        st.session_state.current_q_idx = 0
-        st.session_state.answers = {}
-        st.session_state.finished = False
-        st.session_state.result = None
-        st.rerun()
-
+# duży spacer + jedna mała kolumna na przycisk
+_spacer, col_logout = st.columns([11, 1])
 with col_logout:
     if st.button("Wyloguj", key="logout_btn_top", use_container_width=True):
         st.session_state.auth_ok = False
         st.rerun()
-
 # ---------------------- 📄 LOAD SURVEY ----------------------
 
 @st.cache_data
