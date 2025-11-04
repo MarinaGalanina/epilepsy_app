@@ -199,71 +199,28 @@ def check_access() -> bool:
 
     st.stop()
 
-
 if not check_access():
     st.stop()
 
-# ---------------------- 🔁 LOGOUT ----------------------
-# ---------------------- 🔁 WYLOGOWANIE ----------------------
-# ---------------------- 🔁 WYLOGOWANIE ----------------------
+# ---------------------- 🔁 GÓRNE PRZYCISKI (po prawej) ----------------------
 st.sidebar.success("Zalogowano")
 
-st.markdown("""
-<style>
-.logout-container {
-  position: absolute;
-  top: 16px;
-  right: 24px;
-}
-.logout-btn {
-  background-color: #f8f9fa !important;
-  color: #222 !important;
-  border: 1px solid #d0d0d0 !important;
-  border-radius: 6px !important;
-  padding: 4px 14px !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  height: 34px !important;
-  line-height: 24px !important;
-  transition: all 0.2s ease-in-out;
-}
-.logout-btn:hover {
-  background-color: #e9ecef !important;
-  border-color: #aaa !important;
-}
-</style>
+# jeden wiersz z dwoma małymi kolumnami po prawej
+_spacer, col_reset, col_logout = st.columns([8, 1, 1])
 
-<div class="logout-container">
-    <button class="logout-btn" onclick="window.parent.postMessage('logout', '*')">Wyloguj</button>
-</div>
+with col_reset:
+    if st.button("Zacznij od nowa", key="reset_btn_top", use_container_width=True):
+        autosave(finished=False, result={"event": "reset"})
+        st.session_state.current_q_idx = 0
+        st.session_state.answers = {}
+        st.session_state.finished = False
+        st.session_state.result = None
+        st.rerun()
 
-<script>
-window.addEventListener('message', (event) => {
-    if (event.data === 'logout') {
-        const streamlitButtons = window.parent.document.querySelectorAll('button[kind]');
-        for (const btn of streamlitButtons) {
-            if (btn.innerText.trim() === 'Wyloguj') {
-                btn.click();
-                break;
-            }
-        }
-    }
-});
-</script>
-""", unsafe_allow_html=True)
-
-# Ukryty "prawdziwy" przycisk Streamlit (działa po kliknięciu JS)
-st.markdown("""
-<style>
-button[data-testid="stButton"][key="logout_hidden"] {
-    display: none !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-if st.button("Wyloguj", key="logout_hidden"):
-    st.session_state.auth_ok = False
-    st.rerun()
+with col_logout:
+    if st.button("Wyloguj", key="logout_btn_top", use_container_width=True):
+        st.session_state.auth_ok = False
+        st.rerun()
 
 # ---------------------- 📄 LOAD SURVEY ----------------------
 
@@ -473,17 +430,6 @@ if st.session_state.finished and st.session_state.result:
             file_name="wynik_ankiety.json",
             mime="application/json"
         )
-
-    st.markdown('<div style="display:flex; justify-content:flex-start;">', unsafe_allow_html=True)
-    if st.button("Zacznij od nowa", key="reset_btn"):
-        autosave(finished=False, result={"event": "reset"})
-        st.session_state.current_q_idx = 0
-        st.session_state.answers = {}
-        st.session_state.finished = False
-        st.session_state.result = None
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
 
 # ---------------------- 📝 FOOTER ----------------------
 st.caption("Wersja: " + survey.get("meta", {}).get("version", "unknown"))
