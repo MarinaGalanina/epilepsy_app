@@ -7,10 +7,10 @@ from typing import Dict, Any, List
 from datetime import datetime
 import requests
 
-# ---------------------- ⚙️ FUNKCJE POMOCNICZE ----------------------
+# ---------------------- ⚙️ HELPERS ----------------------
 
 def read_secret(key: str, default=None):
-    """Bezpieczne czytanie sekretów — najpierw ENV, potem st.secrets"""
+    """Read secret from ENV, then st.secrets, else default."""
     if key in os.environ:
         return os.environ.get(key)
     try:
@@ -24,9 +24,9 @@ def _now_iso():
     return datetime.utcnow().isoformat()
 
 if "user_id" not in st.session_state:
-    st.session_state.user_id = str(uuid.uuid4())  # anonimowy UID
+    st.session_state.user_id = str(uuid.uuid4())  # anonymous UID
 
-# ---------------------- 💾 LOKALNA BAZA ----------------------
+# ---------------------- 💾 LOCAL DB ----------------------
 
 @st.cache_resource
 def get_db():
@@ -63,7 +63,7 @@ def save_locally(*, user_id, survey_version, path_id, q_idx, answers_dict, finis
     )
     conn.commit()
 
-# ---------------------- ☁️ ZAPIS DO CHMURY ----------------------
+# ---------------------- ☁️ REMOTE SAVE ----------------------
 
 def save_remote(payload: dict):
     WEBHOOK_URL = read_secret("WEBHOOK_URL")
@@ -122,38 +122,60 @@ def autosave(*, finished=False, result=None):
     )
     save_remote(payload)
 
-# ---------------------- 🌐 STRONA GŁÓWNA ----------------------
+# ---------------------- 🌐 PAGE CONFIG ----------------------
 
 st.set_page_config(
     page_title="Ryzyko cech napadu (DEMO)",
     page_icon="🧠",
     layout="wide",
-    initial_sidebar_state="expanded"  # menu widoczne od startu
+    initial_sidebar_state="expanded"
 )
 
-# ---------------------- 💄 STYL ----------------------
+# ---------------------- 💄 GLOBAL CSS ----------------------
 st.markdown("""
 <style>
-/* 🔧 usuwa biały pasek na górze */
+/* Hide Streamlit chrome completely */
 div[data-testid="stDecoration"],
 header, div[data-testid="stHeader"], div[data-testid="stToolbar"],
 footer, div[data-testid="stStatusWidget"], div[data-testid="stAppStatusContainer"] {
-    display: none !important;
-    visibility: hidden !important;
+  display: none !important; visibility: hidden !important; height: 0 !important; min-height: 0 !important;
 }
 
-/* dopasuj kontener aby logo nie zostawiało miejsca */
-main, div[data-testid="stAppViewContainer"], div.block-container {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
+/* Remove any residual top spacing/padding */
+html, body, [data-testid="stAppViewContainer"], main, div[data-testid="stAppViewContainer"] > .main,
+div[data-testid="stAppViewContainer"] .block-container {
+  margin-top: 0 !important; padding-top: 0 !important;
 }
+
+/* Keep sidebar toggle visible for UX */
+div[data-testid="collapsedControl"] { display: flex !important; }
+
+/* Tighten content width a bit for readability */
+div[data-testid="stAppViewContainer"] .block-container { max-width: 980px; padding-bottom: 28px; }
+
+/* --- Login card: minimal & professional --- */
+.auth-wrap {
+  width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center;
+}
+.auth-card {
+  width: min(92vw, 520px);
+  background: var(--background-color);
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 14px;
+  padding: 22px 22px 18px 22px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+}
+.auth-title {
+  font-size: 1.6rem; font-weight: 700; margin: 4px 0 6px 0;
+}
+.auth-caption { color: rgba(0,0,0,0.65); margin-bottom: 10px; }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------- 🔒 LOGOWANIE ----------------------
+# ---------------------- 🔒 AUTH ----------------------
 
 def check_access() -> bool:
-    # Bypass tylko jeśli DISABLE_AUTH ustawione
+    # Bypass only if explicitly allowed
     if os.environ.get("DISABLE_AUTH", "").lower() in {"1", "true", "yes"}:
         return True
 
@@ -162,33 +184,18 @@ def check_access() -> bool:
 
     ACCESS_CODE = read_secret("ACCESS_CODE", None)
     if not ACCESS_CODE:
-        ACCESS_CODE = "demo"  # domyślny kod na potrzeby pokazu
+        ACCESS_CODE = "demo"  # fallback for demos
 
-    # UI logowania
-    st.markdown("""
-    <style>
-    div[data-testid="stAppViewContainer"] > .main {
-        height: 100vh; display: flex; align-items: center; justify-content: center;
-        padding-top: 0 !important; padding-bottom: 0 !important;
-    }
-    .auth-card {
-        width: min(94vw, 420px); background: var(--background-color);
-        border-radius: 18px; padding: 28px 28px 22px 28px;
-        box-shadow: 0 12px 30px rgba(0,0,0,0.08); text-align: center;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    st.markdown('<div class="auth-card">', unsafe_allow_html=True)
-    st.image("https://img.icons8.com/color/96/brain.png", width=76)
-    st.markdown("### Szacowanie ryzyka cech napadów")
-    st.write("Wpisz kod dostępu, aby kontynuować:")
+    # Minimal, image-free login
+    st.markdown('<div class="auth-wrap"><div class="auth-card">', unsafe_allow_html=True)
+    st.markdown('<div class="auth-title">Szacowanie ryzyka cech napadów</div>', unsafe_allow_html=True)
+    st.markdown('<div class="auth-caption">Wpisz kod dostępu, aby kontynuować:</div>', unsafe_allow_html=True)
 
     with st.form("login_form", clear_on_submit=False):
-        code = st.text_input("Kod dostępu", type="password", label_visibility="collapsed")
+        code = st.text_input("Kod dostępu", type="password", label_visibility="collapsed", key="login_code")
         submitted = st.form_submit_button("Zaloguj", use_container_width=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown('</div></div>', unsafe_allow_html=True)
 
     if submitted:
         if code == ACCESS_CODE:
@@ -202,19 +209,20 @@ def check_access() -> bool:
 if not check_access():
     st.stop()
 
-# 🔁 WYLOGOWANIE – sidebar + awaryjny top-bar
+# ---------------------- 🔁 LOGOUT ----------------------
 st.sidebar.success("Zalogowano")
 if st.sidebar.button("Wyloguj"):
     st.session_state.auth_ok = False
     st.rerun()
 
+# Optional top-right emergency logout
 top_cols = st.columns([1, 1, 1, 1, 1])
 with top_cols[-1]:
     if st.button("Wyloguj", key="logout_top"):
         st.session_state.auth_ok = False
         st.rerun()
 
-# ---------------------- 📄 WCZYTANIE ANKIETY ----------------------
+# ---------------------- 📄 LOAD SURVEY ----------------------
 
 @st.cache_data
 def load_survey(path: str) -> Dict[str, Any]:
@@ -235,7 +243,7 @@ paths: Dict[str, Dict[str, Any]] = {p["id"]: p for p in survey["paths"]}
 path_labels: Dict[str, str] = {p["label"]: p["id"] for p in survey["paths"]}
 labels_list: List[str] = list(path_labels.keys())
 
-# ---------------------- 🧭 STAN ----------------------
+# ---------------------- 🧭 STATE ----------------------
 def _init_state():
     if "selected_path_id" not in st.session_state:
         st.session_state.selected_path_id = list(path_labels.values())[0]
@@ -252,7 +260,7 @@ _init_state()
 def _current_label() -> str:
     return [k for k, v in path_labels.items() if v == st.session_state.selected_path_id][0]
 
-# ---------------------- 🧩 WYBÓR ŚCIEŻKI ----------------------
+# ---------------------- 🧩 PATH PICKER ----------------------
 cur_label = _current_label()
 top_choice = st.selectbox(
     "Typ incydentu",
@@ -281,16 +289,16 @@ if new_label != cur_label:
     st.session_state.finished = False
     st.session_state.result = None
 
-# Aktualizacja po zmianie
+# Refresh path data
 path = paths[st.session_state.selected_path_id]
 questions: List[Dict[str, Any]] = path.get("questions", [])
 nq = len(questions)
 label_text = _current_label()
 
-# ---------------------- 🔢 OCENA ----------------------
+# ---------------------- 🔢 SCORING ----------------------
 def _tri_weights(q: Dict[str, Any]):
-    """Zwraca (w_yes, w_maybe, w_no) — brak wartości = 0.
-    Dzięki temu pytania bez wag (nie-czerwone) nie liczą się do punktacji."""
+    """Return (yes, maybe, no) weights; missing = 0.
+       Questions without weights don't affect score."""
     return (
         float(q.get("weight_yes", 0) or 0),
         float(q.get("weight_maybe", 0) or 0),
@@ -303,7 +311,7 @@ def compute_scores(answers: Dict[str, Any], path: Dict[str, Any]):
 
     for q in path.get("questions", []):
         if q.get("noscore", False):
-            continue  # jawne wykluczenie z punktacji
+            continue
 
         qtype = q.get("type")
         qid = q.get("id")
@@ -312,7 +320,6 @@ def compute_scores(answers: Dict[str, Any], path: Dict[str, Any]):
             w_yes, w_maybe, w_no = _tri_weights(q)
             per_q_max = max(w_yes, w_maybe, w_no)
             max_score += per_q_max
-
             a = answers.get(qid)
             if a == "tak":
                 score += w_yes
@@ -326,7 +333,6 @@ def compute_scores(answers: Dict[str, Any], path: Dict[str, Any]):
             opt_weights = [float(o.get("weight", 0) or 0) for o in opts]
             per_q_max = max(opt_weights) if opt_weights else 0.0
             max_score += per_q_max
-
             chosen = answers.get(qid)
             if chosen is not None:
                 for o in opts:
@@ -343,18 +349,7 @@ def compute_scores(answers: Dict[str, Any], path: Dict[str, Any]):
 
     return score, max_score, prob
 
-def _is_scored(q: Dict[str, Any]) -> bool:
-    """Czy pytanie wnosi punkty? (ma jakiekolwiek wagi lub wagę opcji)"""
-    if q.get("noscore", False):
-        return False
-    if q.get("type") == "tri":
-        wy, wm, wn = _tri_weights(q)
-        return any([wy, wm, wn])
-    if q.get("type") == "select":
-        return any([float(o.get("weight", 0) or 0) > 0 for o in q.get("options", [])])
-    return False
-
-# ---------------------- 🧱 INTERFEJS ----------------------
+# ---------------------- 🧱 UI ----------------------
 st.header(f"Ścieżka: {label_text}")
 
 if nq == 0:
@@ -365,7 +360,6 @@ else:
     st.markdown(f"Pytanie {q_idx + 1} z {nq}")
 
 def tri_buttons(qid: str):
-    st.markdown('<div class="choice-grid">', unsafe_allow_html=True)
     cols = st.columns(3)
     clicked = None
     with cols[0]:
@@ -377,13 +371,11 @@ def tri_buttons(qid: str):
     with cols[2]:
         if st.button("Nie wiem", key=f"btn_{qid}_niewiem", use_container_width=True):
             clicked = "nie wiem"
-    st.markdown('</div>', unsafe_allow_html=True)
     return clicked
 
 if not st.session_state.finished and nq > 0:
     q = questions[st.session_state.current_q_idx]
 
-    # Nagłówek + badge "liczy się do wyniku" tylko gdy pytanie ma wagi
     q_title = q.get("text", "Pytanie")
     st.markdown(f"### {q_title}")
 
@@ -395,8 +387,6 @@ if not st.session_state.finished and nq > 0:
         val = st.selectbox("", ["-- wybierz --"] + labels, index=0, key=f"sel_{q['id']}")
         if val != "-- wybierz --":
             answer_clicked = val
-
-    # inne typy można dodać np. input tekstowy, ale nie wpływają na ocenę
 
     if answer_clicked is not None:
         st.session_state.answers[q["id"]] = answer_clicked
@@ -414,7 +404,7 @@ if not st.session_state.finished and nq > 0:
 
 st.divider()
 
-# ---------------------- 📊 WYNIK ----------------------
+# ---------------------- 📊 RESULT ----------------------
 if st.session_state.finished and st.session_state.result:
     res = st.session_state.result
     score, max_score, prob = res["score"], res["max_score"], res["prob"]
@@ -451,5 +441,6 @@ if st.session_state.finished and st.session_state.result:
             st.session_state.result = None
             st.rerun()
 
+# ---------------------- 📝 FOOTER ----------------------
 st.caption("Wersja: " + survey.get("meta", {}).get("version", "unknown"))
 st.caption(survey.get("meta", {}).get("disclaimer", ""))
