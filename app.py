@@ -134,18 +134,18 @@ st.set_page_config(
 # ---------------------- 💄 STYL ----------------------
 st.markdown("""
 <style>
+/* 🔧 usuwa biały pasek na górze */
 div[data-testid="stDecoration"],
 header, div[data-testid="stHeader"], div[data-testid="stToolbar"],
-div[class*="viewerBadge_"], a[data-testid="viewer-badge"],
-div[data-testid="stStatusWidget"], [data-testid="stAppStatusContainer"] {
-  display: none !important;
-  visibility: hidden !important;
+footer, div[data-testid="stStatusWidget"], div[data-testid="stAppStatusContainer"] {
+    display: none !important;
+    visibility: hidden !important;
 }
 
-div[data-testid="collapsedControl"] { display: flex !important; }
-
-div[data-testid="stAppViewContainer"] .block-container {
-  padding-top: 12px; padding-bottom: 28px; max-width: 980px;
+/* dopasuj kontener aby logo nie zostawiało miejsca */
+main, div[data-testid="stAppViewContainer"], div.block-container {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
 }
 </style>
 """, unsafe_allow_html=True)
