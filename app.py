@@ -206,7 +206,7 @@ if not check_access():
 st.sidebar.success("Zalogowano")
 
 # jeden wiersz z przyciskiem WYLOGUJ wyrównanym do prawej
-_spacer, col_logout = st.columns([11, 1])
+_spacer, col_logout = st.columns([10, 2])
 with col_logout:
     if st.button("Wyloguj", key="logout_btn_top", use_container_width=True):
         st.session_state.auth_ok = False
