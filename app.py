@@ -147,12 +147,6 @@ div[data-testid="collapsedControl"] { display: flex !important; }
 div[data-testid="stAppViewContainer"] .block-container {
   padding-top: 12px; padding-bottom: 28px; max-width: 980px;
 }
-
-/* Badge przy pytaniu, które liczy się do wyniku */
-.badge-score {
-  display:inline-block; margin-left:8px; padding:2px 8px; font-size:12px;
-  border-radius:999px; background:#ffe8e6; color:#b30000; border:1px solid #ffb3ac;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -391,10 +385,7 @@ if not st.session_state.finished and nq > 0:
 
     # Nagłówek + badge "liczy się do wyniku" tylko gdy pytanie ma wagi
     q_title = q.get("text", "Pytanie")
-    if _is_scored(q):
-        st.markdown(f"### {q_title} <span class='badge-score'>liczy się do wyniku</span>", unsafe_allow_html=True)
-    else:
-        st.markdown(f"### {q_title}")
+    st.markdown(f"### {q_title}")
 
     answer_clicked = None
     if q.get("type") == "tri":
