@@ -130,7 +130,7 @@ st.set_page_config(
     page_title="Ryzyko cech napadu (DEMO)",
     page_icon="🧠",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"   # ⬅️ expanded, żeby menu było widoczne
 )
 
 # ---------------------- 💄 STYL ----------------------
@@ -144,7 +144,8 @@ div[data-testid="stStatusWidget"], [data-testid="stAppStatusContainer"] {
   visibility: hidden !important;
 }
 
-div[data-testid="collapsedControl"] { display: none !important; }
+/* ⛔️ NIE ukrywamy już przełącznika sidebara */
+div[data-testid="collapsedControl"] { display: flex !important; }
 
 @media (max-width: 768px){
   div[data-testid="collapsedControl"] {
@@ -169,17 +170,20 @@ div[data-testid="stAppViewContainer"] .block-container {
 # ---------------------- 🔒 LOGOWANIE ----------------------
 
 def check_access() -> bool:
-    # Wyłączenie auth (np. DEMO)
+    # 1) Bypass tylko jeśli DISABLE_AUTH ustawione
     if os.environ.get("DISABLE_AUTH", "").lower() in {"1", "true", "yes"}:
         return True
 
-    ACCESS_CODE = read_secret("ACCESS_CODE", None)
-    if not ACCESS_CODE:
-        return True
-
+    # 2) Jeśli już zalogowany – kontynuuj
     if st.session_state.get("auth_ok", False):
         return True
 
+    # 3) Czytamy kod; jeśli brak – ustawiamy domyślny "demo" (dla pokazów)
+    ACCESS_CODE = read_secret("ACCESS_CODE", None)
+    if not ACCESS_CODE:
+        ACCESS_CODE = "demo"
+
+    # ---- UI logowania ----
     st.markdown("""
     <style>
     div[data-testid="stAppViewContainer"] > .main {
@@ -238,6 +242,7 @@ except FileNotFoundError:
 
 paths: Dict[str, Dict[str, Any]] = {p["id"]: p for p in survey["paths"]}
 path_labels: Dict[str, str] = {p["label"]: p["id"] for p in survey["paths"]}
+labels_list: List[str] = list(path_labels.keys())
 
 # ---------------------- 🧭 STAN ----------------------
 def _init_state():
@@ -253,23 +258,46 @@ def _init_state():
         st.session_state.result = None
 _init_state()
 
+# Aktualna etykieta na podstawie selected_path_id
+def _current_label() -> str:
+    return [k for k, v in path_labels.items() if v == st.session_state.selected_path_id][0]
+
 # ---------------------- 🧩 WYBÓR ŚCIEŻKI ----------------------
+# Fallback selector u góry (na wypadek ukrytego sidebara)
+cur_label = _current_label()
+top_choice = st.selectbox(
+    "Typ incydentu",
+    labels_list,
+    index=labels_list.index(cur_label),
+    key="top_select"
+)
+
 st.sidebar.header("Wybór ścieżki")
 if st.session_state.finished:
     st.sidebar.info("Wynik obliczony. Aby zacząć od nowa, kliknij „Zacznij od nowa”.")
+    sidebar_choice = cur_label
 else:
-    chosen_label = st.sidebar.radio("Typ incydentu:", list(path_labels.keys()))
-    selected_path_id = path_labels[chosen_label]
-    if selected_path_id != st.session_state.selected_path_id:
-        st.session_state.selected_path_id = selected_path_id
-        st.session_state.current_q_idx = 0
-        st.session_state.answers = {}
-        st.session_state.finished = False
-        st.session_state.result = None
+    sidebar_choice = st.sidebar.radio(
+        "Typ incydentu:",
+        labels_list,
+        index=labels_list.index(cur_label),
+        key="sidebar_radio"
+    )
 
+# Priorytet dajemy górnemu selektorowi, jeśli zmieniony
+new_label = top_choice if top_choice != cur_label else sidebar_choice
+if new_label != cur_label:
+    st.session_state.selected_path_id = path_labels[new_label]
+    st.session_state.current_q_idx = 0
+    st.session_state.answers = {}
+    st.session_state.finished = False
+    st.session_state.result = None
+
+# Po ewentualnej zmianie odświeżamy referencje
 path = paths[st.session_state.selected_path_id]
 questions: List[Dict[str, Any]] = path.get("questions", [])
 nq = len(questions)
+label_text = _current_label()
 
 # ---------------------- 🔢 OCENA ----------------------
 def compute_scores(answers: Dict[str, Any], path: Dict[str, Any]):
@@ -301,14 +329,14 @@ def compute_scores(answers: Dict[str, Any], path: Dict[str, Any]):
     return score, max_score, prob
 
 # ---------------------- 🧱 INTERFEJS ----------------------
-label_text = [k for k,v in path_labels.items() if v==st.session_state.selected_path_id][0]
 st.header(f"Ścieżka: {label_text}")
 
 if nq == 0:
     st.warning("Brak pytań w tej ścieżce.")
 else:
     q_idx = st.session_state.current_q_idx
-    st.progress(int((q_idx / max(nq,1)) * 100))
+    pct = int((q_idx / max(nq, 1)) * 100)
+    st.progress(pct)
     st.markdown(f"Pytanie {q_idx + 1} z {nq}")
 
 def tri_buttons(qid: str):
