@@ -207,27 +207,33 @@ if not check_access():
 # ---------------------- 🔁 WYLOGOWANIE ----------------------
 st.sidebar.success("Zalogowano")
 
-if st.sidebar.button("Wyloguj z panelu"):
-    st.session_state.auth_ok = False
-    st.rerun()
+# usuń z sidebara, jeśli niepotrzebne
+# if st.sidebar.button("Wyloguj"):
+#     st.session_state.auth_ok = False
+#     st.rerun()
 
-# Estetyczny przycisk w prawym górnym rogu
 st.markdown("""
 <style>
-.logout-btn {
-  position: absolute;
-  top: 18px;
-  right: 28px;
+.top-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+button[kind="secondary"] {
+  border-radius: 6px !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-logout_col = st.container()
-with logout_col:
-    if st.button("Wyloguj", key="logout_fixed"):
-        st.session_state.auth_ok = False
-        st.rerun()
-st.markdown('<div class="logout-btn"></div>', unsafe_allow_html=True)
+with st.container():
+    st.markdown('<div class="top-buttons">', unsafe_allow_html=True)
+    col1, col2 = st.columns([0.9, 0.1])
+    with col2:
+        if st.button("Wyloguj", key="logout_fixed"):
+            st.session_state.auth_ok = False
+            st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------- 📄 LOAD SURVEY ----------------------
 
@@ -438,15 +444,15 @@ if st.session_state.finished and st.session_state.result:
             mime="application/json"
         )
 
-    center_col = st.columns([1, 1, 1])[1]
-    with center_col:
-        if st.button("Zacznij od nowa"):
-            autosave(finished=False, result={"event": "reset"})
-            st.session_state.current_q_idx = 0
-            st.session_state.answers = {}
-            st.session_state.finished = False
-            st.session_state.result = None
-            st.rerun()
+    st.markdown('<div style="display:flex; justify-content:flex-end;">', unsafe_allow_html=True)
+    if st.button("Zacznij od nowa", key="reset_btn"):
+        autosave(finished=False, result={"event": "reset"})
+        st.session_state.current_q_idx = 0
+        st.session_state.answers = {}
+        st.session_state.finished = False
+        st.session_state.result = None
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------- 📝 FOOTER ----------------------
 st.caption("Wersja: " + survey.get("meta", {}).get("version", "unknown"))
