@@ -205,35 +205,57 @@ if not check_access():
 
 # ---------------------- 🔁 LOGOUT ----------------------
 # ---------------------- 🔁 WYLOGOWANIE ----------------------
+# ---------------------- 🔁 WYLOGOWANIE ----------------------
 st.sidebar.success("Zalogowano")
-
-# usuń z sidebara, jeśli niepotrzebne
-# if st.sidebar.button("Wyloguj"):
-#     st.session_state.auth_ok = False
-#     st.rerun()
 
 st.markdown("""
 <style>
-.top-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-bottom: 10px;
+.logout-container {
+  position: absolute;
+  top: 16px;
+  right: 24px;
 }
-button[kind="secondary"] {
+.logout-btn {
+  background-color: #f8f9fa !important;
+  color: #222 !important;
+  border: 1px solid #d0d0d0 !important;
   border-radius: 6px !important;
+  padding: 4px 14px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  height: 34px !important;
+  line-height: 24px !important;
+  transition: all 0.2s ease-in-out;
+}
+.logout-btn:hover {
+  background-color: #e9ecef !important;
+  border-color: #aaa !important;
 }
 </style>
+
+<div class="logout-container">
+    <button class="logout-btn" onclick="window.parent.postMessage('logout', '*')">Wyloguj</button>
+</div>
+
+<script>
+window.addEventListener('message', (event) => {
+    if (event.data === 'logout') {
+        const streamlitButtons = window.parent.document.querySelectorAll('button[kind]');
+        for (const btn of streamlitButtons) {
+            if (btn.innerText.trim() === 'Wyloguj') {
+                btn.click();
+                break;
+            }
+        }
+    }
+});
+</script>
 """, unsafe_allow_html=True)
 
-with st.container():
-    st.markdown('<div class="top-buttons">', unsafe_allow_html=True)
-    col1, col2 = st.columns([0.9, 0.1])
-    with col2:
-        if st.button("Wyloguj", key="logout_fixed"):
-            st.session_state.auth_ok = False
-            st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+# Ukryty "prawdziwy" przycisk Streamlit (działa po kliknięciu JS)
+if st.button("Wyloguj", key="logout_hidden", help="Ukryty przycisk wylogowania"):
+    st.session_state.auth_ok = False
+    st.rerun()
 
 # ---------------------- 📄 LOAD SURVEY ----------------------
 
