@@ -134,68 +134,61 @@ st.set_page_config(
 # ---------------------- 💄 GLOBAL CSS ----------------------
 st.markdown("""
 <style>
-/* Hide Streamlit chrome completely */
+/* schowaj chrome Streamlita, ale nie zmieniaj wysokości głównych kontenerów */
 div[data-testid="stDecoration"],
 header, div[data-testid="stHeader"], div[data-testid="stToolbar"],
-footer, div[data-testid="stStatusWidget"], div[data-testid="stAppStatusContainer"] {
-  display: none !important; visibility: hidden !important; height: 0 !important; min-height: 0 !important;
+footer, div[data-testid="stStatusWidget"] {
+  display: none !important;
+  visibility: hidden !important;
 }
 
-/* Remove any residual top spacing/padding */
-html, body, [data-testid="stAppViewContainer"], main, div[data-testid="stAppViewContainer"] > .main,
-div[data-testid="stAppViewContainer"] .block-container {
-  margin-top: 0 !important; padding-top: 0 !important;
-}
-
-/* Keep sidebar toggle visible for UX */
+/* zostaw przełącznik sidebara i normalny flow */
 div[data-testid="collapsedControl"] { display: flex !important; }
 
-/* Tighten content width a bit for readability */
-div[data-testid="stAppViewContainer"] .block-container { max-width: 980px; padding-bottom: 28px; }
-
-/* --- Login card: minimal & professional --- */
-.auth-wrap {
-  width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center;
+/* szerokość i pady treści */
+div[data-testid="stAppViewContainer"] .block-container {
+  max-width: 980px; padding-top: 12px; padding-bottom: 28px;
 }
-.auth-card {
-  width: min(92vw, 520px);
-  background: var(--background-color);
+
+/* prosta karta logowania */
+.login-card {
   border: 1px solid rgba(0,0,0,.08);
   border-radius: 14px;
   padding: 22px 22px 18px 22px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+  background: var(--background-color);
 }
-.auth-title {
-  font-size: 1.6rem; font-weight: 700; margin: 4px 0 6px 0;
-}
-.auth-caption { color: rgba(0,0,0,0.65); margin-bottom: 10px; }
 </style>
 """, unsafe_allow_html=True)
 
 # ---------------------- 🔒 AUTH ----------------------
 
 def check_access() -> bool:
-    # Bypass only if explicitly allowed
+    # Bypass tylko jeśli DISABLE_AUTH ustawione
     if os.environ.get("DISABLE_AUTH", "").lower() in {"1", "true", "yes"}:
         return True
 
     if st.session_state.get("auth_ok", False):
         return True
 
-    ACCESS_CODE = read_secret("ACCESS_CODE", None)
-    if not ACCESS_CODE:
-        ACCESS_CODE = "demo"  # fallback for demos
+    ACCESS_CODE = read_secret("ACCESS_CODE", None) or "demo"
 
-    # Minimal, image-free login
-    st.markdown('<div class="auth-wrap"><div class="auth-card">', unsafe_allow_html=True)
-    st.markdown('<div class="auth-title">Szacowanie ryzyka cech napadów</div>', unsafe_allow_html=True)
-    st.markdown('<div class="auth-caption">Wpisz kod dostępu, aby kontynuować:</div>', unsafe_allow_html=True)
+    # odstęp od góry
+    st.markdown("<div style='height:6vh'></div>", unsafe_allow_html=True)
 
-    with st.form("login_form", clear_on_submit=False):
-        code = st.text_input("Kod dostępu", type="password", label_visibility="collapsed", key="login_code")
-        submitted = st.form_submit_button("Zaloguj", use_container_width=True)
+    # centrum strony: 3 kolumny, środkowa z kartą logowania
+    c1, c2, c3 = st.columns([1, 1.2, 1])
+    with c2:
+        with st.container(border=False):
+            st.markdown("<div class='login-card'>", unsafe_allow_html=True)
+            st.markdown("### Szacowanie ryzyka cech napadów")
+            st.caption("Wpisz kod dostępu, aby kontynuować:")
 
-    st.markdown('</div></div>', unsafe_allow_html=True)
+            with st.form("login_form", clear_on_submit=False):
+                code = st.text_input("Kod dostępu", type="password", label_visibility="collapsed", key="login_code")
+                submitted = st.form_submit_button("Zaloguj", use_container_width=True)
+
+            st.markdown("</div>", unsafe_allow_html=True)
 
     if submitted:
         if code == ACCESS_CODE:
@@ -209,16 +202,13 @@ def check_access() -> bool:
 if not check_access():
     st.stop()
 
-# ---------------------- 🔁 LOGOUT ----------------------
+# ---------------------- 🔁 GÓRNY PRZYCISK (po prawej) ----------------------
 st.sidebar.success("Zalogowano")
-if st.sidebar.button("Wyloguj"):
-    st.session_state.auth_ok = False
-    st.rerun()
 
-# Optional top-right emergency logout
-top_cols = st.columns([1, 1, 1, 1, 1])
-with top_cols[-1]:
-    if st.button("Wyloguj", key="logout_top"):
+# jeden wiersz z przyciskiem WYLOGUJ wyrównanym do prawej
+_spacer, col_logout = st.columns([11, 1])
+with col_logout:
+    if st.button("Wyloguj", key="logout_btn_top", use_container_width=True):
         st.session_state.auth_ok = False
         st.rerun()
 
@@ -271,7 +261,7 @@ top_choice = st.selectbox(
 
 st.sidebar.header("Wybór ścieżki")
 if st.session_state.finished:
-    st.sidebar.info("Wynik obliczony. Aby zacząć od nowa, kliknij „Zacznij od nowa”.")
+    st.sidebar.info("Wynik obliczony. Aby zacząć od nowa, kliknij „Zacznij od nowa” na dole ekranu wyników.")
     sidebar_choice = cur_label
 else:
     sidebar_choice = st.sidebar.radio(
@@ -431,9 +421,10 @@ if st.session_state.finished and st.session_state.result:
             mime="application/json"
         )
 
-    center_col = st.columns([1, 1, 1])[1]
-    with center_col:
-        if st.button("Zacznij od nowa"):
+    # przycisk tylko NA DOLE, po PRAWEJ
+    right_spacer, right_btn = st.columns([0.8, 0.2])
+    with right_btn:
+        if st.button("Zacznij od nowa", key="reset_btn_bottom", use_container_width=True):
             autosave(finished=False, result={"event": "reset"})
             st.session_state.current_q_idx = 0
             st.session_state.answers = {}
